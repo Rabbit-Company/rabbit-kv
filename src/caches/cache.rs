@@ -12,13 +12,13 @@ pub enum Value {
 }
 
 pub struct CacheItem {
-	expiration: Instant,
-	value: Value
+	pub expiration: Instant,
+	pub value: Value
 }
 
 pub struct Cache {
-	cache: HashMap<String, CacheItem>,
-	stats: Stats
+	pub cache: HashMap<String, CacheItem>,
+	pub stats: Stats
 }
 
 impl Cache {
@@ -44,22 +44,6 @@ impl Cache {
 
 	pub fn list(&mut self){
 		//self.cache.keys()
-	}
-
-	pub fn get_stats(&mut self) -> &Stats{
-		&self.stats
-	}
-
-}
-
-impl CacheItem {
-
-	pub fn get_value(&self) -> &Value{
-		&self.value
-	}
-
-	pub fn get_expiration(&self) -> &Instant{
-		&self.expiration
 	}
 
 }
