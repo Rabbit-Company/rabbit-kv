@@ -1,6 +1,5 @@
 use cache::Cache;
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 pub mod cache;
 
 fn main() {
