@@ -2,6 +2,8 @@ use std::time::{Instant, Duration};
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
+use super::stats::Stats;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum Value {
@@ -15,10 +17,18 @@ pub struct CacheItem {
 }
 
 pub struct Cache {
-	pub cache: HashMap<String, CacheItem>
+	pub cache: HashMap<String, CacheItem>,
+	pub stats: Stats
 }
 
 impl Cache {
+
+	pub fn new() -> Self {
+		Cache {
+			cache: ( HashMap::new() ),
+			stats: ( Stats { writes: 0, reads: 0, deletes: 0, lists: 0 } )
+		}
+	}
 
 	pub fn set(&mut self, key: String, value: Value, ttl: u64){
 		self.cache.insert(key, CacheItem { expiration: Instant::now() + Duration::from_secs(ttl), value });
@@ -36,4 +46,10 @@ impl Cache {
 		//self.cache.keys()
 	}
 
+}
+
+impl Default for Cache {
+	fn default() -> Self {
+		Self::new()
+	}
 }
