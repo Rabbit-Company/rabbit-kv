@@ -9,7 +9,7 @@ fn main() {
 	cache.set("test123".to_string(), cache::Value::Str("hello".to_string()), 60);
 	cache.set("test1234".to_string(), cache::Value::Int(64), 60);
 
-	let value: &cache::Value = &cache.get("test1234".to_string()).unwrap().value;
+	let value: &cache::Value = &cache.get("test1234").unwrap().value;
 
 	let serialized: String = serde_json::to_string(value).unwrap();
 	println!("{}", serialized);

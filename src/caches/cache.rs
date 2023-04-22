@@ -34,15 +34,15 @@ impl Cache {
 		self.cache.insert(key, CacheItem { expiration: Instant::now() + Duration::from_secs(ttl), value });
 	}
 
-	pub fn get(&mut self, key: String) -> Option<&CacheItem>{
-		self.cache.get(&key)
+	pub fn get(&self, key: &str) -> Option<&CacheItem>{
+		self.cache.get(key)
 	}
 
-	pub fn delete(&mut self, key: String){
-		self.cache.remove(&key);
+	pub fn delete(&mut self, key: &str){
+		self.cache.remove(key);
 	}
 
-	pub fn list(&mut self){
+	pub fn list(&self){
 		//self.cache.keys()
 	}
 

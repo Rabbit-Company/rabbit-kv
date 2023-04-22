@@ -14,4 +14,12 @@ impl Account {
 		Account { username, token, caches: HashMap::new() }
 	}
 
+	pub fn authorize(&self, username: &str, token: &str) -> bool{
+		self.username == username && self.token == token
+	}
+
+	pub fn cache(&self, key: &str) -> Option<&cache::Cache>{
+		self.caches.get(key)
+	}
+
 }
