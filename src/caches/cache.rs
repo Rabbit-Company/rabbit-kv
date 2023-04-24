@@ -1,5 +1,5 @@
 use std::time::{Instant, Duration};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
 
 use super::stats::Stats;
@@ -17,7 +17,7 @@ pub struct CacheItem {
 }
 
 pub struct Cache {
-	pub cache: HashMap<String, CacheItem>,
+	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats
 }
 
@@ -25,7 +25,7 @@ impl Cache {
 
 	pub fn new() -> Self {
 		Cache {
-			cache: ( HashMap::new() ),
+			cache: ( IndexMap::new() ),
 			stats: ( Stats { writes: 0, reads: 0, deletes: 0, lists: 0 } )
 		}
 	}
@@ -42,8 +42,8 @@ impl Cache {
 		self.cache.remove(key);
 	}
 
-	pub fn list(&self){
-		//self.cache.keys()
+	pub fn list<'a>(&'a self, limit: usize, cursor: usize, prefix: &'a str) -> impl Iterator<Item = (usize, &String)>{
+		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit)
 	}
 
 }
