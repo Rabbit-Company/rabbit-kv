@@ -11,6 +11,8 @@ fn main() {
 	cache.set("test3".to_string(), cache::Value::Int(34), 60);
 	cache.set("test4".to_string(), cache::Value::Str("hello2".to_string()), 60);
 
+	cache.delete("test2");
+
 	let value: &cache::Value = &cache.get("test4").unwrap().value;
 
 	let serialized: String = serde_json::to_string(value).unwrap();

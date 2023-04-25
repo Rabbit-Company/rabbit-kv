@@ -56,6 +56,7 @@ impl Cache {
 			let kv: KeyValue = KeyValue { key: key2, value: value2, expiration };
 			let line: String = serde_json::to_string(&kv).unwrap() + "\n";
 			file.write(line.as_bytes()).ok();
+			file.flush().ok();
 		}
 	}
 
@@ -65,6 +66,9 @@ impl Cache {
 
 	pub fn delete(&mut self, key: &str){
 		self.cache.remove(key);
+		if self.persistant {
+			self.save().ok();
+		}
 	}
 
 	pub fn list<'a>(&'a self, limit: usize, cursor: usize, prefix: &'a str) -> Vec<&'a String>{
@@ -95,12 +99,12 @@ impl Cache {
 	}
 
 	pub fn save(&self) -> Result<()>{
-		let file: File = OpenOptions::new().write(true).append(false).create(true).open(self.id.to_string())?;
+		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(self.id.to_string())?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for (key, cache_item) in &self.cache {
 			let kv: KeyValue = KeyValue { key: key.clone(), value: cache_item.value.clone(), expiration: cache_item.expiration };
 			let line: String = serde_json::to_string(&kv)?;
-			writeln!(writer, "{}\n", line)?;
+			writeln!(writer, "{}", line)?;
 		}
 		Ok(())
 	}
