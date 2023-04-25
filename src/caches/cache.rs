@@ -42,6 +42,7 @@ impl Cache {
 	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u64){
 		let key2: String = key.clone();
 		let value2: serde_json::Value = value.clone();
+		self.stats.writes += 1;
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
@@ -53,18 +54,21 @@ impl Cache {
 		}
 	}
 
-	pub fn get(&self, key: &str) -> Option<&CacheItem>{
+	pub fn get(&mut self, key: &str) -> Option<&CacheItem>{
+		self.stats.reads += 1;
 		self.cache.get(key)
 	}
 
 	pub fn delete(&mut self, key: &str){
+		self.stats.deletes += 1;
 		self.cache.remove(key);
 		if self.persistant {
 			self.save().ok();
 		}
 	}
 
-	pub fn list<'a>(&'a self, limit: usize, cursor: usize, prefix: &'a str) -> Vec<&'a String>{
+	pub fn list(&mut self, limit: usize, cursor: usize, prefix: &str) -> Vec<&String>{
+		self.stats.lists += 1;
 		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit).map(|(_i, k)| k).collect()
 	}
 
