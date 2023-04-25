@@ -22,7 +22,7 @@ pub struct CacheItem {
 }
 
 pub struct Cache {
-	pub id: Uuid,
+	pub id: String,
 	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats,
 	pub persistant: bool,
@@ -30,9 +30,11 @@ pub struct Cache {
 
 impl Cache {
 
-	pub fn new() -> Self {
+	pub fn new(id: String) -> Self {
+		let mut id: String = id;
+		if id.is_empty() { id = Uuid::new_v4().to_string(); };
 		Cache {
-			id: Uuid::new_v4(),
+			id,
 			cache: ( IndexMap::new() ),
 			stats: ( Stats { writes: 0, reads: 0, deletes: 0, lists: 0 } ),
 			persistant: false
@@ -106,10 +108,4 @@ impl Cache {
 		Ok(())
 	}
 
-}
-
-impl Default for Cache {
-	fn default() -> Self {
-		Self::new()
-	}
 }
