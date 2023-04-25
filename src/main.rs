@@ -6,14 +6,15 @@ use crate::caches::cache;
 fn main() {
 	let mut cache: cache::Cache = cache::Cache::new();
 
-	cache.set("test123".to_string(), cache::Value::Str("hello".to_string()), 60);
-	cache.set("test1234".to_string(), cache::Value::Int(64), 60);
+	cache.set("test1".to_string(), cache::Value::Str("hello".to_string()), 60);
+	cache.set("test2".to_string(), cache::Value::Int(64), 60);
+	cache.set("test3".to_string(), cache::Value::Int(34), 60);
+	cache.set("test4".to_string(), cache::Value::Str("hello2".to_string()), 60);
 
-	let value: &cache::Value = &cache.get("test1234").unwrap().value;
+	let value: &cache::Value = &cache.get("test4").unwrap().value;
 
 	let serialized: String = serde_json::to_string(value).unwrap();
 	println!("{}", serialized);
-
 
 	println!("{:?}", cache.list(1000, 0, "test"));
 }
