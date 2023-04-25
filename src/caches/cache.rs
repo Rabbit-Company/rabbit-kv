@@ -10,9 +10,9 @@ use super::stats::Stats;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct KeyValue {
-	key: String,
-	value: serde_json::Value,
-	expiration: u64
+	k: String,
+	v: serde_json::Value,
+	e: u64
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,8 +46,8 @@ impl Cache {
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
-			let mut file: File = OpenOptions::new().write(true).append(true).create(true).open(self.id.to_string()).unwrap();
-			let kv: KeyValue = KeyValue { key: key2, value: value2, expiration };
+			let mut file: File = OpenOptions::new().write(true).append(true).create(true).open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string())).unwrap();
+			let kv: KeyValue = KeyValue { k: key2, v: value2, e: expiration };
 			let line: String = serde_json::to_string(&kv).unwrap() + "\n";
 			file.write(line.as_bytes()).ok();
 			file.flush().ok();
@@ -86,20 +86,20 @@ impl Cache {
 	}
 
 	pub fn load(&mut self) -> Result<()>{
-		let file: File = File::open(self.id.to_string())?;
+		let file: File = File::open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string()))?;
 		let reader: BufReader<File> = BufReader::new(file);
 		for line in reader.lines() {
 			let kv: KeyValue = serde_json::from_str(line.as_ref().unwrap())?;
-			self.cache.insert(kv.key, CacheItem { expiration: kv.expiration, value: kv.value });
+			self.cache.insert(kv.k, CacheItem { expiration: kv.e, value: kv.v });
 		}
 		Ok(())
 	}
 
 	pub fn save(&self) -> Result<()>{
-		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(self.id.to_string())?;
+		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string()))?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for (key, cache_item) in &self.cache {
-			let kv: KeyValue = KeyValue { key: key.clone(), value: cache_item.value.clone(), expiration: cache_item.expiration };
+			let kv: KeyValue = KeyValue { k: key.clone(), v: cache_item.value.clone(), e: cache_item.expiration };
 			let line: String = serde_json::to_string(&kv)?;
 			writeln!(writer, "{}", line)?;
 		}
