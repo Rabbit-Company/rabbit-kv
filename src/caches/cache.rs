@@ -8,27 +8,17 @@ use std::io::{Result, BufReader, BufWriter};
 
 use super::stats::Stats;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
-pub enum Value {
-	String(String),
-	Number(i64),
-	BigNumber(i128),
-	Decimal(f64),
-	Boolean(bool)
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 struct KeyValue {
 	key: String,
-	value: Value,
+	value: serde_json::Value,
 	expiration: u64
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CacheItem {
 	pub expiration: u64,
-	pub value: Value
+	pub value: serde_json::Value
 }
 
 pub struct Cache {
@@ -49,9 +39,9 @@ impl Cache {
 		}
 	}
 
-	pub fn set(&mut self, key: String, value: Value, ttl: u64){
+	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u64){
 		let key2: String = key.clone();
-		let value2: Value = value.clone();
+		let value2: serde_json::Value = value.clone();
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
