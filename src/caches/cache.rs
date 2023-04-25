@@ -11,8 +11,11 @@ use super::stats::Stats;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Value {
-	Str(String),
-	Int(i64)
+	String(String),
+	Number(i64),
+	BigNumber(i128),
+	Decimal(f64),
+	Boolean(bool)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,7 +45,7 @@ impl Cache {
 			id: Uuid::new_v4(),
 			cache: ( IndexMap::new() ),
 			stats: ( Stats { writes: 0, reads: 0, deletes: 0, lists: 0 } ),
-			persistant: true
+			persistant: false
 		}
 	}
 
