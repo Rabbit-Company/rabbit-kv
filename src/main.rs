@@ -13,4 +13,7 @@ fn main() {
 
 	let serialized: String = serde_json::to_string(value).unwrap();
 	println!("{}", serialized);
+
+
+	println!("{:?}", cache.list(1000, 0, "test"));
 }

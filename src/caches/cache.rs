@@ -42,8 +42,8 @@ impl Cache {
 		self.cache.remove(key);
 	}
 
-	pub fn list<'a>(&'a self, limit: usize, cursor: usize, prefix: &'a str) -> impl Iterator<Item = (usize, &String)>{
-		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit)
+	pub fn list<'a>(&'a self, limit: usize, cursor: usize, prefix: &'a str) -> Vec<&'a String>{
+		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit).map(|(_i, k)| k).collect()
 	}
 
 }
