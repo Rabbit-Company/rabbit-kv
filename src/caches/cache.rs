@@ -46,6 +46,19 @@ impl Cache {
 		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit).map(|(_i, k)| k).collect()
 	}
 
+	pub fn delete_expired_items(&mut self){
+		let now: Instant = Instant::now();
+		let mut expired_keys: Vec<String> = Vec::new();
+		for (key, cache_item) in self.cache.iter() {
+			if now >= cache_item.expiration {
+				expired_keys.push(key.clone());
+			}
+		}
+		for key in expired_keys {
+			self.cache.remove(&key);
+		}
+	}
+
 }
 
 impl Default for Cache {
