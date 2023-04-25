@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod caches;
 pub mod accounts;
 
@@ -10,6 +11,8 @@ fn main() {
 
 	let mut accounts: Accounts = Accounts::new();
 	accounts.import().ok();
+
+	accounts.create("ziga.zajc007".to_string(), "0a7fc79cba4cfc0aa13519ed4ec652f779eed7a8357c152030e060d3a04eeff5".to_string(), "ziga.zajc007@gmail.com".to_string());
 
 	fs::create_dir_all("/var/lib/rabbitkv/storage").expect("Permission denied. Please run program with root user.");
 

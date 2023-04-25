@@ -1,5 +1,6 @@
 use crate::caches::cache::Cache;
 use crate::caches::stats::Stats;
+use crate::errors::Error;
 
 use self::account::Account;
 use serde::{Serialize, Deserialize};
@@ -48,7 +49,7 @@ impl Accounts {
 		Ok(())
 	}
 
-	pub fn save(&mut self) -> Result<()>{
+	pub fn save(&self) -> Result<()>{
 		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open("/var/lib/rabbitkv/accounts.jsonl")?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for account in &self.accounts {
@@ -63,6 +64,18 @@ impl Accounts {
 			writeln!(writer, "{}", line)?;
 		}
 		Ok(())
+	}
+
+	pub fn create(&mut self, username: String, password: String, email: String) -> Error{
+
+		for account in &self.accounts {
+			if account.username == username { return Error::UsernameExists }
+		}
+
+		self.accounts.push(Account::new(username, password, email));
+		self.save().ok();
+
+		Error::Success
 	}
 
 }
