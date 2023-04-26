@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde_json::Value;
 
 pub enum Error {
 	Success,
@@ -12,7 +13,7 @@ pub enum Error {
 pub struct JValue {
 	code: u16,
 	info: &'static str,
-	response: Option<&'static str>,
+	response: Option<Value>,
 }
 
 impl Error {
@@ -36,7 +37,7 @@ impl Error {
 		}
 	}
 
-	pub fn json(&self, response: Option<&'static str>) -> JValue{
+	pub fn json(&self, response: Option<Value>) -> JValue{
 		JValue{ code: Self::code(self), info: Self::message(self), response }
 	}
 
