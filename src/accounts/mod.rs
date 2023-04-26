@@ -70,15 +70,15 @@ impl Accounts {
 
 	pub fn create(&mut self, username: String, password: String, email: String) -> Error{
 
-		if !validate::USERNAME.is_match(&username) {
+		if username.is_empty() || !validate::USERNAME.is_match(&username) {
 			return Error::UsernameInvalid;
 		}
 
-		if !validate::EMAIL.is_match(&email) {
+		if email.is_empty() || !validate::EMAIL.is_match(&email) {
 			return Error::EmailInvalid;
 		}
 
-		if !validate::PASSWORD.is_match(&password){
+		if password.is_empty() || !validate::PASSWORD.is_match(&password){
 			return Error::PasswordInvalid;
 		}
 
