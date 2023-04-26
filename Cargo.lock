@@ -676,6 +676,7 @@ dependencies = [
  "axum",
  "clap",
  "indexmap",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",

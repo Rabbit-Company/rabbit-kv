@@ -7,6 +7,7 @@ use crate::accounts::Accounts;
 
 pub mod errors;
 pub mod caches;
+pub mod validate;
 pub mod accounts;
 pub mod endpoints;
 
