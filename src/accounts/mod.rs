@@ -84,6 +84,7 @@ impl Accounts {
 
 		for account in &self.accounts {
 			if account.username == username { return Error::UsernameExists }
+			if account.email == email { return Error::EmailExists }
 		}
 
 		self.accounts.push(Account::new(username, password, email));
