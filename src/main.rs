@@ -1,6 +1,7 @@
 use std::fs;
 use clap::Parser;
 use axum::{Router, routing::post};
+use std::sync::{Arc, Mutex};
 
 use crate::accounts::Accounts;
 
@@ -29,11 +30,14 @@ async fn main(){
 	let args: Args = Args::parse();
 	fs::create_dir_all("/var/lib/rabbitkv/storage").expect("Permission denied. Please run program with root user.");
 
-	let mut accounts: Accounts = Accounts::new();
-	accounts.import().ok();
+	let accounts: Arc<Mutex<Accounts>> = Arc::new(Mutex::new(Accounts::new()));
+	{
+		accounts.lock().unwrap().import().ok();
+	}
 
 	let app: Router<_, _> = Router::new()
-		.route("/account/create", post(endpoints::create_account));
+		.route("/account/create", post(endpoints::create_account))
+		.with_state(accounts.clone());
 
 	let address: String = args.address + ":" + &args.port.to_string();
 	println!("Rabbit KV listening on {}", &address);

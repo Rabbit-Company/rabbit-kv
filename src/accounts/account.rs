@@ -2,6 +2,7 @@ use std::{collections::HashMap, time::SystemTime, time::UNIX_EPOCH};
 
 use crate::caches::cache;
 
+#[derive(Clone)]
 pub struct Account {
 	pub username: String,
 	pub password: String,

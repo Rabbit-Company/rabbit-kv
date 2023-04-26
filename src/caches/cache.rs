@@ -15,12 +15,13 @@ struct KeyValue {
 	e: u64
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CacheItem {
 	pub expiration: u64,
 	pub value: serde_json::Value
 }
 
+#[derive(Clone)]
 pub struct Cache {
 	pub id: String,
 	pub cache: IndexMap<String, CacheItem>,

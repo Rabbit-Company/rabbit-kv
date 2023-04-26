@@ -23,6 +23,7 @@ pub struct KeyValue {
 	pub accessed: u64
 }
 
+#[derive(Clone)]
 pub struct Accounts {
 	pub accounts: Vec<Account>
 }
