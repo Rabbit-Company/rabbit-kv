@@ -1,37 +1,41 @@
+use std::fs;
+use clap::Parser;
+use axum::{Router, routing::post};
+
+use crate::accounts::Accounts;
+
 pub mod errors;
 pub mod caches;
 pub mod accounts;
+pub mod endpoints;
 
-use std::fs;
-use serde_json::json;
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
 
-use crate::{caches::cache, accounts::Accounts};
+	/// Bind the server to specific address
+	#[arg(short, long, default_value_t = String::from("0.0.0.0"))]
+	address: String,
 
-fn main() {
+	/// Bind the server to specific port
+	#[arg(short, long, default_value_t = 6380)]
+	port: u16,
+
+}
+
+#[tokio::main]
+async fn main(){
+
+	let args: Args = Args::parse();
+	fs::create_dir_all("/var/lib/rabbitkv/storage").expect("Permission denied. Please run program with root user.");
 
 	let mut accounts: Accounts = Accounts::new();
 	accounts.import().ok();
 
-	accounts.create("ziga.zajc007".to_string(), "0a7fc79cba4cfc0aa13519ed4ec652f779eed7a8357c152030e060d3a04eeff5".to_string(), "ziga.zajc007@gmail.com".to_string());
+	let app: Router<_, _> = Router::new()
+		.route("/account/create", post(endpoints::create_account));
 
-	fs::create_dir_all("/var/lib/rabbitkv/storage").expect("Permission denied. Please run program with root user.");
-
-	let mut cache: cache::Cache = cache::Cache::new("".to_string());
-
-	cache.set("test1".to_string(), json!("Hello"), 60);
-	cache.set("test2".to_string(), json!(64), 60);
-	cache.set("test3".to_string(), json!(3.43453), 60);
-	cache.set("test4".to_string(), json!(true), 60);
-	cache.set("test5".to_string(), json!(null), 60);
-	cache.set("test6".to_string(), json!([1,2,3,4,5]), 60);
-	cache.set("test7".to_string(), json!({ "theme": "dark", "refresh": 5 }), 60);
-
-	cache.delete("test2");
-
-	println!("{}", &cache.get("test4").unwrap().value);
-	println!("{}", &cache.get("test5").unwrap().value);
-	println!("{}", &cache.get("test6").unwrap().value);
-	println!("{}", &cache.get("test7").unwrap().value);
-
-	println!("{:?}", cache.list(1000, 0, "test"));
+	let address: String = args.address + ":" + &args.port.to_string();
+	println!("Rabbit KV listening on {}", &address);
+	axum::Server::bind(&address.parse().unwrap()).serve(app.into_make_service()).await.unwrap();
 }
