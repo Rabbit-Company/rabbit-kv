@@ -3,6 +3,7 @@ use crate::caches::stats::Stats;
 use crate::errors::Error;
 
 use self::account::Account;
+use regex::Regex;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
@@ -67,6 +68,21 @@ impl Accounts {
 	}
 
 	pub fn create(&mut self, username: String, password: String, email: String) -> Error{
+
+		let re_username: Regex = Regex::new(r"^([a-z][a-z0-9\-]{3,29})$").unwrap();
+		if !re_username.is_match(&username) {
+			return Error::UsernameInvalid;
+		}
+
+		let re_email: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").unwrap();
+		if !re_email.is_match(&email) {
+			return Error::EmailInvalid;
+		}
+
+		let re_password: Regex = Regex::new(r"^([a-z0-9]{128})$").unwrap();
+		if !re_password.is_match(&password){
+			return Error::PasswordInvalid;
+		}
 
 		for account in &self.accounts {
 			if account.username == username { return Error::UsernameExists }
