@@ -31,11 +31,15 @@ pub async fn handle_get(
 		 # HELP cache_lists Total cache lists\n\
 		 # TYPE cache_lists counter\n\
 		 cache_lists {}\n\
+		 # HELP cache_keys Number of keys in a cache\n\
+		 # TYPE cache_keys gauge\n\
+		 cache_keys {}\n\
 		 # EOF",
 		shared_cache.stats.writes,
 		shared_cache.stats.reads,
 		shared_cache.stats.deletes,
-		shared_cache.stats.lists
+		shared_cache.stats.lists,
+		shared_cache.cache.len()
 	);
 
 	response_body.into_response()
