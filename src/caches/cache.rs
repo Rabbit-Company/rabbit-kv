@@ -1,6 +1,5 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use indexmap::IndexMap;
-use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
@@ -21,9 +20,8 @@ pub struct CacheItem {
 	pub value: serde_json::Value
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Cache {
-	pub id: String,
 	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats,
 	pub persistant: bool,
@@ -31,15 +29,8 @@ pub struct Cache {
 
 impl Cache {
 
-	pub fn new(id: String) -> Self {
-		let mut id: String = id;
-		if id.is_empty() { id = Uuid::new_v4().to_string(); };
-		Cache {
-			id,
-			cache: ( IndexMap::new() ),
-			stats: ( Stats { writes: 0, reads: 0, deletes: 0, lists: 0 } ),
-			persistant: false
-		}
+	pub fn new() -> Self {
+		Default::default()
 	}
 
 	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u64){
@@ -49,10 +40,10 @@ impl Cache {
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
-			let mut file: File = OpenOptions::new().write(true).append(true).create(true).open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string())).unwrap();
+			let mut file: File = OpenOptions::new().append(true).create(true).open("/var/lib/rabbitkv/storage/cache.jsonl").unwrap();
 			let kv: KeyValue = KeyValue { k: key2, v: value2, e: expiration };
 			let line: String = serde_json::to_string(&kv).unwrap() + "\n";
-			file.write(line.as_bytes()).ok();
+			file.write_all(line.as_bytes()).ok();
 			file.flush().ok();
 		}
 	}
@@ -64,7 +55,7 @@ impl Cache {
 
 	pub fn delete(&mut self, key: &str){
 		self.stats.deletes += 1;
-		self.cache.remove(key);
+		self.cache.swap_remove(key);
 		if self.persistant {
 			self.save().ok();
 		}
@@ -84,12 +75,12 @@ impl Cache {
 			}
 		}
 		for key in expired_keys {
-			self.cache.remove(&key);
+			self.cache.swap_remove(&key);
 		}
 	}
 
 	pub fn load(&mut self) -> Result<()>{
-		let file: File = File::open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string()))?;
+		let file: File = File::open("/var/lib/rabbitkv/storage/cache.jsonl")?;
 		let reader: BufReader<File> = BufReader::new(file);
 		for line in reader.lines() {
 			let kv: KeyValue = serde_json::from_str(line.as_ref().unwrap())?;
@@ -99,7 +90,7 @@ impl Cache {
 	}
 
 	pub fn save(&self) -> Result<()>{
-		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(format!("/var/lib/rabbitkv/storage/{}.jsonl", &self.id.to_string()))?;
+		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open("/var/lib/rabbitkv/storage/cache.jsonl")?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for (key, cache_item) in &self.cache {
 			let kv: KeyValue = KeyValue { k: key.clone(), v: cache_item.value.clone(), e: cache_item.expiration };

@@ -1,15 +1,23 @@
-use std::fs;
+use axum::{
+	routing::{get, post},
+	Router,
+};
 use clap::Parser;
-use axum::{Router, routing::post};
 use std::sync::{Arc, Mutex};
+use tokio::net::TcpListener;
 
-use crate::accounts::Accounts;
-
-pub mod errors;
 pub mod caches;
-pub mod validate;
-pub mod accounts;
-pub mod endpoints;
+mod endpoints {
+	pub mod v1 {
+		pub mod get;
+		pub mod set;
+		pub mod stats;
+	}
+}
+pub mod state;
+
+use state::SharedState;
+use crate::caches::cache::Cache;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -23,24 +31,28 @@ struct Args {
 	#[arg(short, long, default_value_t = 6380)]
 	port: u16,
 
+	/// Token used for authentication
+	#[arg(short, long, default_value_t = String::from("default_token"))]
+	token: String,
+
 }
 
 #[tokio::main]
 async fn main(){
-
 	let args: Args = Args::parse();
-	fs::create_dir_all("/var/lib/rabbitkv/storage").expect("Permission denied. Please run program with root user.");
-
-	let accounts: Arc<Mutex<Accounts>> = Arc::new(Mutex::new(Accounts::new()));
-	{
-		accounts.lock().unwrap().import().ok();
-	}
-
-	let app: Router<_, _> = Router::new()
-		.route("/account/create", post(endpoints::create_account))
-		.with_state(accounts.clone());
+	let state: Arc<Mutex<SharedState>> = Arc::new(Mutex::new(SharedState { token: args.token, cache: Cache::new() }));
 
 	let address: String = args.address + ":" + &args.port.to_string();
-	println!("Rabbit KV listening on {}", &address);
-	axum::Server::bind(&address.parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+
+	let app: Router = Router::new()
+	.route("/v1/set", post(endpoints::v1::set::handle_post))
+	.route("/v1/set/:key/:value/:ttl", get(endpoints::v1::set::handle_get))
+	.route("/v1/get/:key", get(endpoints::v1::get::handle_get))
+	.route("/v1/stats", get(endpoints::v1::stats::handle_get))
+	.with_state(state);
+
+	println!("Server is running on {}", &address);
+
+	let listener: TcpListener = TcpListener::bind(&address).await.unwrap();
+	axum::serve(listener, app).await.unwrap();
 }

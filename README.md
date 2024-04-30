@@ -1,3 +1,3 @@
 # rabbit-kv
 
-The project is still in heavy development.
+The project is still in a heavy development.
