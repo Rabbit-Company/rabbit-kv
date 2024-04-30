@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 
 pub mod caches;
+pub mod state;
+pub mod error;
 mod endpoints {
 	pub mod v1 {
 		pub mod get;
@@ -15,7 +17,6 @@ mod endpoints {
 		pub mod health;
 	}
 }
-pub mod state;
 
 use state::SharedState;
 use crate::caches::cache::Cache;
