@@ -3,6 +3,7 @@ use axum::{
 	Router,
 };
 use std::fs;
+use std::path::Path;
 use clap::Parser;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
@@ -51,8 +52,19 @@ struct Args {
 #[tokio::main]
 async fn main(){
 	let args: Args = Args::parse();
-	fs::create_dir_all(&args.path).expect("Permission denied");
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.persistant, args.path)) });
+
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.persistant, args.path.clone())) });
+
+	if args.persistant {
+		let file = args.path.clone() + "/cache.json";
+		let path = Path::new(&file);
+		if !path.exists() {
+			fs::create_dir_all(&args.path).expect("Failed with creating cache.json file!");
+			fs::write(&file, "{}").expect("Failed with creating cache.json file!");
+		}
+
+		state.cache.lock().unwrap().load().expect("Failed to load cache!");
+	}
 
 	let address: String = args.address + ":" + &args.port.to_string();
 

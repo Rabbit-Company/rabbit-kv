@@ -3,15 +3,15 @@ use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
-use std::io::{Result, BufReader, BufWriter};
+use std::io::Result;
+use std::collections::HashMap;
 
 use super::stats::Stats;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct KeyValue {
-	k: String,
-	v: serde_json::Value,
-	e: u64
+struct CacheItemSmall {
+	pub v: serde_json::Value,
+	pub e: u64
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -46,11 +46,10 @@ impl Cache {
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
-			let mut file: File = OpenOptions::new().append(true).create(true).open(format!("{}/cache.jsonl", self.path)).unwrap();
-			let kv: KeyValue = KeyValue { k: key2, v: value2, e: expiration };
-			let line: String = serde_json::to_string(&kv).unwrap() + "\n";
-			file.write_all(line.as_bytes()).ok();
-			file.flush().ok();
+			let mut cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
+			cache_map.insert(key2, CacheItemSmall { v: value2, e: expiration });
+			let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
+			write_cache_to_file(&self.path, &json_str);
 		}
 	}
 
@@ -86,16 +85,34 @@ impl Cache {
 	}
 
 	pub fn load(&mut self) -> Result<()>{
+		let cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
+		for (key, value) in cache_map {
+			let cache_item = CacheItem {
+					expiration: value.e,
+					value: value.v,
+			};
+			self.cache.insert(key, cache_item);
+		}
+		/*
 		let file: File = File::open(format!("{}/cache.jsonl", self.path))?;
 		let reader: BufReader<File> = BufReader::new(file);
 		for line in reader.lines() {
 			let kv: KeyValue = serde_json::from_str(line.as_ref().unwrap())?;
 			self.cache.insert(kv.k, CacheItem { expiration: kv.e, value: kv.v });
 		}
+		*/
 		Ok(())
 	}
 
 	pub fn save(&self) -> Result<()>{
+		let mut cache_map: HashMap<String, CacheItemSmall> = HashMap::new();
+		for (key, value) in &self.cache {
+			cache_map.insert(key.clone(), CacheItemSmall { v: value.value.clone(), e: value.expiration });
+		}
+		let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
+		write_cache_to_file(&self.path, &json_str);
+
+		/*
 		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(format!("{}/cache.jsonl", self.path))?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for (key, cache_item) in &self.cache {
@@ -103,7 +120,26 @@ impl Cache {
 			let line: String = serde_json::to_string(&kv)?;
 			writeln!(writer, "{}", line)?;
 		}
+		*/
 		Ok(())
 	}
 
+}
+
+fn read_cache_from_file(path: &str) -> HashMap<String, CacheItemSmall> {
+	let mut file = File::open(format!("{}/cache.json", path)).expect("Failed to open cache file!");
+	let mut json_str = String::new();
+	file.read_to_string(&mut json_str).expect("Failed to read cache from a file!");
+
+	serde_json::from_str(&json_str).expect("Failed to read cache from a file!")
+}
+
+fn write_cache_to_file(path: &str, json_str: &str) {
+	let mut file = OpenOptions::new()
+		.write(true)
+		.truncate(true)
+		.open(format!("{}/cache.json", path))
+		.expect("Failed to open cache file!");
+
+	file.write_all(json_str.as_bytes()).expect("Failed to write cache to file!");
 }
