@@ -4,8 +4,8 @@ use headers::{authorization::Bearer, Authorization};
 use std::sync::{Arc,MutexGuard};
 
 use crate::SharedState;
+use crate::error::Error;
 use crate::caches::cache::Cache;
-use crate::caches::cache::CacheItem;
 
 pub async fn handle_get(
 	Path(key): Path<String>,
@@ -14,11 +14,10 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.clone().ne(bearer_token.token()) {
-    return Json(serde_json::json!({ "status": 1000, "message": "Provided token is incorrect!"}));
+    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
   }
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
-	let data: Option<&CacheItem> = shared_cache.get(&key);
 
-	Json(serde_json::json!(data))
+	Json(&shared_cache.get(&key)).into_response()
 }

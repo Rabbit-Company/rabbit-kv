@@ -5,6 +5,7 @@ use std::sync::{Arc, MutexGuard};
 use serde::{Serialize, Deserialize};
 
 use crate::SharedState;
+use crate::error::Error;
 use crate::caches::cache::Cache;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,13 +22,13 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.clone().ne(bearer_token.token()) {
-    return Json(serde_json::json!({ "status": 1000, "message": "Provided token is incorrect!"}));
+    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string()}).into_response();
   }
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 	shared_cache.set(key, value, ttl);
 
-	Json(serde_json::json!({"status": "success"}))
+	Json(Error{ code: 0, message: "success".to_string() }).into_response()
 }
 
 pub async fn handle_post(
@@ -37,11 +38,11 @@ pub async fn handle_post(
 ) -> impl IntoResponse{
 
   if state.token.clone().ne(bearer_token.token()) {
-    return Json(serde_json::json!({ "status": 1000, "message": "Provided token is incorrect!"}));
+    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
   }
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 	shared_cache.set(payload.key, payload.value, payload.ttl);
 
-	Json(serde_json::json!({"status": "success"}))
+	Json(Error{ code: 0, message: "success".to_string() }).into_response()
 }
