@@ -21,7 +21,7 @@ pub async fn handle_get(
 	TypedHeader(bearer_token): TypedHeader<Authorization<Bearer>>
 ) -> impl IntoResponse{
 
-  if state.token.clone().ne(bearer_token.token()) {
+  if state.token.ne(bearer_token.token()) {
     return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string()}).into_response();
   }
 
@@ -37,7 +37,7 @@ pub async fn handle_post(
 	Json(payload): Json<Payload>
 ) -> impl IntoResponse{
 
-  if state.token.clone().ne(bearer_token.token()) {
+  if state.token.ne(bearer_token.token()) {
     return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
   }
 
