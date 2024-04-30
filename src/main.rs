@@ -46,7 +46,7 @@ async fn main(){
 	let address: String = args.address + ":" + &args.port.to_string();
 
 	let app: Router = Router::new()
-	.route("/v1/health", post(endpoints::v1::health::handle_get))
+	.route("/v1/health", get(endpoints::v1::health::handle_get))
 	.route("/v1/set", post(endpoints::v1::set::handle_post))
 	.route("/v1/set/:key/:value/:ttl", get(endpoints::v1::set::handle_get))
 	.route("/v1/get/:key", get(endpoints::v1::get::handle_get))
