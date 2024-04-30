@@ -2,6 +2,7 @@ use axum::{
 	routing::{get, post},
 	Router,
 };
+use std::fs;
 use clap::Parser;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
@@ -37,12 +38,21 @@ struct Args {
 	#[arg(short, long, default_value_t = String::from("default_token"))]
 	token: String,
 
+	/// Persistant cache
+	#[arg(long, default_value_t = false)]
+	persistant: bool,
+
+	/// Persistant cache path
+	#[arg(long, default_value_t = String::from("./cache"))]
+	path: String,
+
 }
 
 #[tokio::main]
 async fn main(){
 	let args: Args = Args::parse();
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new()) });
+	fs::create_dir_all(&args.path).expect("Permission denied");
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.persistant, args.path)) });
 
 	let address: String = args.address + ":" + &args.port.to_string();
 

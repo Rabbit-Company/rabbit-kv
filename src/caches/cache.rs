@@ -25,12 +25,18 @@ pub struct Cache {
 	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats,
 	pub persistant: bool,
+	pub path: String
 }
 
 impl Cache {
 
-	pub fn new() -> Self {
-		Default::default()
+	pub fn new(persistant: bool, path: String) -> Self {
+		Cache {
+			cache: IndexMap::new(),
+			stats: Stats::default(),
+			persistant,
+			path
+		}
 	}
 
 	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u64){
@@ -40,7 +46,7 @@ impl Cache {
 		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
-			let mut file: File = OpenOptions::new().append(true).create(true).open("/var/lib/rabbitkv/storage/cache.jsonl").unwrap();
+			let mut file: File = OpenOptions::new().append(true).create(true).open(format!("{}/cache.jsonl", self.path)).unwrap();
 			let kv: KeyValue = KeyValue { k: key2, v: value2, e: expiration };
 			let line: String = serde_json::to_string(&kv).unwrap() + "\n";
 			file.write_all(line.as_bytes()).ok();
@@ -80,7 +86,7 @@ impl Cache {
 	}
 
 	pub fn load(&mut self) -> Result<()>{
-		let file: File = File::open("/var/lib/rabbitkv/storage/cache.jsonl")?;
+		let file: File = File::open(format!("{}/cache.jsonl", self.path))?;
 		let reader: BufReader<File> = BufReader::new(file);
 		for line in reader.lines() {
 			let kv: KeyValue = serde_json::from_str(line.as_ref().unwrap())?;
@@ -90,7 +96,7 @@ impl Cache {
 	}
 
 	pub fn save(&self) -> Result<()>{
-		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open("/var/lib/rabbitkv/storage/cache.jsonl")?;
+		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(format!("{}/cache.jsonl", self.path))?;
 		let mut writer: BufWriter<File> = BufWriter::new(file);
 		for (key, cache_item) in &self.cache {
 			let kv: KeyValue = KeyValue { k: key.clone(), v: cache_item.value.clone(), e: cache_item.expiration };
