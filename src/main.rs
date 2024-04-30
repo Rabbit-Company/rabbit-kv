@@ -41,7 +41,7 @@ struct Args {
 #[tokio::main]
 async fn main(){
 	let args: Args = Args::parse();
-	let state: Arc<Mutex<SharedState>> = Arc::new(Mutex::new(SharedState { token: args.token, cache: Cache::new() }));
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new()) });
 
 	let address: String = args.address + ":" + &args.port.to_string();
 

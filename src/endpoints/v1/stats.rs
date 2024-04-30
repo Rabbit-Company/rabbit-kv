@@ -1,20 +1,22 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, MutexGuard};
 
 use crate::SharedState;
+use crate::caches::cache::Cache;
 
 pub async fn handle_get(
-	State(state): State<Arc<Mutex<SharedState>>>,
+	State(state): State<Arc<SharedState>>,
 	TypedHeader(bearer_token): TypedHeader<Authorization<Bearer>>
 ) -> impl IntoResponse{
-  let shared_state: MutexGuard<'_, SharedState> = state.lock().unwrap();
-  if shared_state.token.ne(bearer_token.token()) {
+
+  if state.token.clone().ne(bearer_token.token()) {
     return Json(serde_json::json!({ "status": 1000, "message": "Provided token is incorrect!"}));
   }
 
-	let data = shared_state.cache.stats.clone();
+	let shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+	let data = shared_cache.stats.clone();
 
 	Json(serde_json::json!(data))
 }
