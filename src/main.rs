@@ -12,6 +12,7 @@ pub mod caches;
 pub mod state;
 pub mod error;
 mod endpoints {
+	pub mod ws;
 	pub mod metrics;
 	pub mod v1 {
 		pub mod get;
@@ -70,6 +71,7 @@ async fn main(){
 	let address: String = args.address + ":" + &args.port.to_string();
 
 	let app: Router = Router::new()
+	.route("/ws/:token", get(endpoints::ws::handle_get))
 	.route("/metrics", get(endpoints::metrics::handle_get))
 	.route("/v1/health", get(endpoints::v1::health::handle_get))
 	.route("/v1/set", post(endpoints::v1::set::handle_post))
