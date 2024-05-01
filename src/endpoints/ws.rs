@@ -19,15 +19,13 @@ pub async fn handle_get(
 	ws.on_upgrade(handle_socket)
 }
 
-async fn handle_socket(socket: WebSocket) {
-
-	let (_, mut receiver) = socket.split();
+async fn handle_socket(mut socket: WebSocket) {
 
 	tokio::spawn(async move {
 		let mut cnt = 0;
-		while let Some(Ok(msg)) = receiver.next().await {
+		while let Some(Ok(msg)) = socket.next().await {
 			cnt += 1;
-			if process_message(msg).is_break() {
+			if process_message(&mut socket, msg).await.is_break() {
 				break;
 			}
 		}
@@ -36,15 +34,15 @@ async fn handle_socket(socket: WebSocket) {
 
 }
 
-fn process_message(msg: Message) -> ControlFlow<(), ()> {
+async fn process_message(socket: &mut WebSocket, msg: Message) -> ControlFlow<(), ()> {
 	match msg {
 
 		Message::Text(t) => {
-			println!(">>> received str: {t:?}");
+			socket.send(Message::Text(t)).await.ok();
 		}
 
 		Message::Binary(d) => {
-			println!(">>> received {} bytes: {:?}", d.len(), d);
+			socket.send(Message::Binary(d)).await.ok();
 		}
 
 		Message::Close(_) => { return ControlFlow::Break(()); }
