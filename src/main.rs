@@ -17,6 +17,7 @@ mod endpoints {
 	pub mod v1 {
 		pub mod get;
 		pub mod set;
+		pub mod incr;
 		pub mod stats;
 		pub mod health;
 	}
@@ -76,6 +77,8 @@ async fn main(){
 	.route("/v1/health", get(endpoints::v1::health::handle_get))
 	.route("/v1/set", post(endpoints::v1::set::handle_post))
 	.route("/v1/set/:key/:value/:ttl", get(endpoints::v1::set::handle_get))
+	.route("/v1/incr", post(endpoints::v1::incr::handle_post))
+	.route("/v1/incr/:key/:value/:ttl", get(endpoints::v1::incr::handle_get))
 	.route("/v1/get/:key", get(endpoints::v1::get::handle_get))
 	.route("/v1/stats", get(endpoints::v1::stats::handle_get))
 	.with_state(state);
