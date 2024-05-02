@@ -5,6 +5,7 @@ use std::sync::{Arc, MutexGuard};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
+use crate::utils::current_time;
 use crate::SharedState;
 use crate::error::Error;
 use crate::caches::cache::Cache;
@@ -48,9 +49,16 @@ pub async fn handle_get(
 		None => 1,
 	};
 
-	let new_ttl = match shared_cache.get(&key) {
-		Some(item) => item.expiration,
-		None => ttl,
+	let new_ttl: u128 = match shared_cache.get(&key) {
+		Some(item) => {
+			let current_time: u128 = current_time();
+			if item.expiration > current_time {
+				item.expiration - current_time
+			} else {
+				0
+			}
+		},
+		None => 1000 * ttl as u128,
 	};
 
 	shared_cache.set(key.clone(), Value::Number(new_value.into()), new_ttl);
@@ -90,9 +98,16 @@ pub async fn handle_post(
 		None => 1,
 	};
 
-	let new_ttl = match shared_cache.get(&payload.key) {
-		Some(item) => item.expiration,
-		None => payload.ttl,
+	let new_ttl: u128 = match shared_cache.get(&payload.key) {
+		Some(item) => {
+			let current_time: u128 = current_time();
+			if item.expiration > current_time {
+				item.expiration - current_time
+			} else {
+				0
+			}
+		},
+		None => 1000 * payload.ttl as u128,
 	};
 
 	shared_cache.set(payload.key.clone(), Value::Number(new_value.into()), new_ttl);

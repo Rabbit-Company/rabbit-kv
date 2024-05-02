@@ -8,6 +8,7 @@ use clap::Parser;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 
+pub mod utils;
 pub mod caches;
 pub mod state;
 pub mod error;

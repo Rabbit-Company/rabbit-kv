@@ -26,7 +26,7 @@ pub async fn handle_get(
   }
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
-	shared_cache.set(key, value, ttl);
+	shared_cache.set(key, value, 1000 * ttl as u128);
 
 	Json(Error{ code: 0, message: "success".to_string() }).into_response()
 }
@@ -42,7 +42,7 @@ pub async fn handle_post(
   }
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
-	shared_cache.set(payload.key, payload.value, payload.ttl);
+	shared_cache.set(payload.key, payload.value, payload.ttl as u128 * 1000);
 
 	Json(Error{ code: 0, message: "success".to_string() }).into_response()
 }

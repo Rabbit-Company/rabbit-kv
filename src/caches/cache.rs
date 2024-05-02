@@ -1,4 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
 use std::fs::{File, OpenOptions};
@@ -7,16 +6,17 @@ use std::io::Result;
 use std::collections::HashMap;
 
 use super::stats::Stats;
+use crate::utils::current_time;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CacheItemSmall {
 	pub v: serde_json::Value,
-	pub e: u64
+	pub e: u128
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CacheItem {
-	pub expiration: u64,
+	pub expiration: u128,
 	pub value: serde_json::Value
 }
 
@@ -39,11 +39,11 @@ impl Cache {
 		}
 	}
 
-	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u64){
+	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u128){
 		let key2: String = key.clone();
 		let value2: serde_json::Value = value.clone();
 		self.stats.writes += 1;
-		let expiration: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() + ttl;
+		let expiration: u128 = current_time() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
 			let mut cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
@@ -55,7 +55,7 @@ impl Cache {
 
 	pub fn get(&mut self, key: &str) -> Option<&CacheItem>{
 		self.stats.reads += 1;
-		self.cache.get(key)
+    self.cache.get(key).filter(|&item| item.expiration > current_time())
 	}
 
 	pub fn delete(&mut self, key: &str){
@@ -72,10 +72,9 @@ impl Cache {
 	}
 
 	pub fn delete_expired_items(&mut self){
-		let now: u64 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
 		let mut expired_keys: Vec<String> = Vec::new();
 		for (key, cache_item) in self.cache.iter() {
-			if now >= cache_item.expiration {
+			if current_time() >= cache_item.expiration {
 				expired_keys.push(key.clone());
 			}
 		}
