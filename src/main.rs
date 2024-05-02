@@ -21,6 +21,7 @@ mod endpoints {
 		pub mod del;
 		pub mod incr;
 		pub mod decr;
+		pub mod ping;
 		pub mod stats;
 		pub mod health;
 	}
@@ -88,6 +89,7 @@ async fn main(){
 	.route("/v1/decr/:key/:value/:ttl", get(endpoints::v1::decr::handle_get))
 	.route("/v1/get/:key", get(endpoints::v1::get::handle_get))
 	.route("/v1/stats", get(endpoints::v1::stats::handle_get))
+	.route("/v1/ping", get(endpoints::v1::ping::handle_get))
 	.with_state(state);
 
 	println!("Server is running on {}", &address);
