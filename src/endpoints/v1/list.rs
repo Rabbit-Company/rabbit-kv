@@ -1,22 +1,22 @@
 use axum::{extract::State, extract::Path, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use serde_json::Value;
 use std::sync::{Arc,MutexGuard};
 use serde::{Serialize, Deserialize};
 
-use crate::utils::current_time;
 use crate::SharedState;
 use crate::error::Error;
-use crate::caches::cache::{Cache,CacheItem};
+use crate::caches::cache::Cache;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload {
-	pub key: String
+	pub prefix: String,
+	pub limit: usize,
+	pub cursor: usize,
 }
 
 pub async fn handle_get(
-	Path(key): Path<String>,
+	Path((prefix, limit, cursor)): Path<(String, usize, usize)>,
 	State(state): State<Arc<SharedState>>,
 	TypedHeader(bearer_token): TypedHeader<Authorization<Bearer>>
 ) -> impl IntoResponse{
@@ -27,14 +27,7 @@ pub async fn handle_get(
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 
-	match shared_cache.get(&key) {
-		Some(item) => {
-			Json(CacheItem{ value: item.value.clone(), expiration: (item.expiration - current_time())/1000}).into_response()
-		}
-		None => {
-			Json(Value::Null).into_response()
-		}
-	}
+	Json(shared_cache.list(limit, cursor, &prefix)).into_response()
 }
 
 pub async fn handle_post(
@@ -49,12 +42,5 @@ pub async fn handle_post(
 
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 
-	match shared_cache.get(&payload.key) {
-		Some(item) => {
-			Json(CacheItem{ value: item.value.clone(), expiration: (item.expiration - current_time())/1000}).into_response()
-		}
-		None => {
-			Json(Value::Null).into_response()
-		}
-	}
+	Json(shared_cache.list(payload.limit, payload.cursor, &payload.prefix)).into_response()
 }
