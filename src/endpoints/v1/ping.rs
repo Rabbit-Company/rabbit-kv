@@ -6,10 +6,10 @@ use headers::{authorization::Bearer, Authorization};
 use std::sync::Arc;
 
 use crate::SharedState;
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 
 pub fn handle() -> Response<Body>{
-	Json(Error{ code: 0, message: "success".to_string() }).into_response()
+	Json(Error::from_code(ErrorCode::Success)).into_response()
 }
 
 pub async fn handle_get(
@@ -18,7 +18,7 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.ne(bearer_token.token()) {
-    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
+    return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	handle()

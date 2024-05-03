@@ -9,7 +9,7 @@ use serde_json::Value;
 use crate::types::NumberDataPayload;
 use crate::utils::current_time;
 use crate::SharedState;
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
 pub fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Response<Body>{
@@ -22,14 +22,14 @@ pub fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Res
 					match i.checked_sub(value) {
 						Some(result) => result,
 						None => {
-							return Json(Error { code: 1004, message: "Integer overflow occurred".to_string() }).into_response();
+							return Json(Error::from_code(ErrorCode::IntegerOverflow)).into_response();
 						}
 					}
 				} else {
-					return Json(Error { code: 1001, message: "Value is not an integer".to_string() }).into_response();
+					return Json(Error::from_code(ErrorCode::InvalidInteger)).into_response();
 				}
 			} else {
-				return Json(Error { code: 1002, message: "Value is not a number".to_string() }).into_response();
+				return Json(Error::from_code(ErrorCode::InvalidNumber)).into_response();
 			}
 		},
 		None => 1,
@@ -49,7 +49,7 @@ pub fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Res
 
 	shared_cache.set(key.clone(), Value::Number(new_value.into()), new_ttl);
 
-	Json(Error{ code: 0, message: "success".to_string() }).into_response()
+	Json(Error::from_code(ErrorCode::Success)).into_response()
 }
 
 pub async fn handle_get(
@@ -59,7 +59,7 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.ne(bearer_token.token()) {
-    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string()}).into_response();
+    return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	handle(state, key, value, ttl)
@@ -72,7 +72,7 @@ pub async fn handle_post(
 ) -> impl IntoResponse{
 
   if state.token.ne(bearer_token.token()) {
-    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
+    return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	handle(state, payload.key, payload.value, payload.ttl)

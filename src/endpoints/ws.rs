@@ -4,13 +4,21 @@ use std::ops::ControlFlow;
 use futures::stream::StreamExt;
 use serde::{Serialize, Deserialize};
 
-use crate::{types::{Actions, DataPayload, KeyPayload, ListPayload, NumberDataPayload}, SharedState};
+use crate::{error::ErrorCode, types::{Actions, DataPayload, KeyPayload, ListPayload, NumberDataPayload}, SharedState};
 use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload {
+	pub id: u64,
 	pub action: Actions,
 	pub data: serde_json::Value
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WsError {
+	pub id: u64,
+	pub code: u64,
+	pub message: String
 }
 
 pub async fn handle_get(
@@ -43,7 +51,6 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<SharedState>) {
 
 async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<SharedState>) -> ControlFlow<(), ()> {
 	match msg {
-
 		Message::Text(t) => {
 			if let Ok(payload) = serde_json::from_str::<Payload>(&t) {
 				let res: Response<Body> = match payload.action {
@@ -53,49 +60,49 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::get::handle(state, data.key)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::SET => {
 						if let Ok(data) = serde_json::from_value::<DataPayload>(payload.data) {
 							super::v1::set::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::DEL => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::del::handle(state, data.key)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::LIST => {
 						if let Ok(data) = serde_json::from_value::<ListPayload>(payload.data) {
 							super::v1::list::handle(state, data.prefix, data.limit, data.cursor)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::EXISTS => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::exists::handle(state, data.key)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::INCR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 							super::v1::incr::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					},
 					Actions::DECR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 							super::v1::decr::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error{code: 1500, message: "Invalid data!".to_string()}).into_response()
+							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
 						}
 					}
 				};

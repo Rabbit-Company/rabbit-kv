@@ -7,7 +7,7 @@ use std::sync::{Arc,MutexGuard};
 use crate::types::KeyPayload;
 use crate::utils::current_time;
 use crate::SharedState;
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 use crate::caches::cache::{Cache,CacheItem};
 
 pub fn handle(state: Arc<SharedState>, key: String) -> Response<Body>{
@@ -29,7 +29,7 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.ne(bearer_token.token()) {
-    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
+    return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	handle(state, key)
@@ -42,7 +42,7 @@ pub async fn handle_post(
 ) -> impl IntoResponse{
 
   if state.token.ne(bearer_token.token()) {
-    return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
+    return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	handle(state, payload.key)
