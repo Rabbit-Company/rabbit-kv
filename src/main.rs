@@ -12,6 +12,7 @@ pub mod utils;
 pub mod caches;
 pub mod state;
 pub mod error;
+pub mod types;
 mod endpoints {
 	pub mod ws;
 	pub mod metrics;

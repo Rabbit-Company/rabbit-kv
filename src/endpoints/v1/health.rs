@@ -1,7 +1,11 @@
-use axum::{response::IntoResponse, Json};
+use axum::{body::Body, http::Response, response::IntoResponse, Json};
 
 use crate::error::Error;
 
-pub async fn handle_get() -> impl IntoResponse{
+pub fn handle() -> Response<Body>{
 	Json(Error{ code: 0, message: "success".to_string() }).into_response()
+}
+
+pub async fn handle_get() -> impl IntoResponse{
+	handle()
 }

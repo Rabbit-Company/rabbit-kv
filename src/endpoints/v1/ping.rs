@@ -1,3 +1,5 @@
+use axum::body::Body;
+use axum::http::Response;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
@@ -5,6 +7,10 @@ use std::sync::Arc;
 
 use crate::SharedState;
 use crate::error::Error;
+
+pub fn handle() -> Response<Body>{
+	Json(Error{ code: 0, message: "success".to_string() }).into_response()
+}
 
 pub async fn handle_get(
 	State(state): State<Arc<SharedState>>,
@@ -15,5 +21,5 @@ pub async fn handle_get(
     return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
   }
 
-	Json(Error{ code: 0, message: "success".to_string() }).into_response()
+	handle()
 }
