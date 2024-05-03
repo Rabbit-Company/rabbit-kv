@@ -15,10 +15,10 @@ pub struct Payload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WsError {
+pub struct WsResponse {
 	pub id: u64,
 	pub code: u64,
-	pub message: String
+	pub data: Option<serde_json::Value>
 }
 
 pub async fn handle_get(
@@ -60,53 +60,96 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::get::handle(state, data.key)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::SET => {
 						if let Ok(data) = serde_json::from_value::<DataPayload>(payload.data) {
 							super::v1::set::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::DEL => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::del::handle(state, data.key)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::LIST => {
 						if let Ok(data) = serde_json::from_value::<ListPayload>(payload.data) {
 							super::v1::list::handle(state, data.prefix, data.limit, data.cursor)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::EXISTS => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::exists::handle(state, data.key)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::INCR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 							super::v1::incr::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					},
 					Actions::DECR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 							super::v1::decr::handle(state, data.key, data.value, data.ttl)
 						}else{
-							Json(Error::from_code(ErrorCode::InvalidData)).into_response()
+							Json(WsResponse{
+								id: payload.id,
+								code: ErrorCode::InvalidData as u64,
+								data: None
+							}).into_response()
 						}
 					}
 				};
-				socket.send(Message::Text(response_to_string(res).await)).await.ok();
+
+				let json: serde_json::Value = response_to_json(res).await;
+
+				let mut data: WsResponse = WsResponse{
+					id: payload.id,
+					code: 0,
+					data: None
+				};
+
+				if let Some(code) = json.get("code").and_then(serde_json::Value::as_u64) {
+					data.code = code;
+				} else {
+					data.data = Some(json);
+				}
+
+				socket.send(Message::Text(serde_json::to_string(&data).unwrap())).await.ok();
 			}else{
 				socket.send(Message::Text(serde_json::to_string(&Error::from_code(ErrorCode::InvalidPayload)).unwrap())).await.ok();
 			}
@@ -123,14 +166,14 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 	ControlFlow::Continue(())
 }
 
-async fn response_to_string(response: Response<Body>) -> String {
+async fn response_to_json(response: Response<Body>) -> serde_json::Value {
 	if response.status() == StatusCode::OK {
 		let body = response.into_body();
-
 		let full_body = to_bytes(body, usize::MAX).await.unwrap();
+		let body_str = String::from_utf8(full_body.to_vec()).unwrap();
 
-		String::from_utf8(full_body.to_vec()).unwrap()
-	} else {
-		String::new()
+		serde_json::from_str(&body_str).unwrap_or(serde_json::Value::Null)
+	}else{
+		serde_json::Value::Null
 	}
 }
