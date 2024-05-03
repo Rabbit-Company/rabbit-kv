@@ -14,7 +14,7 @@ pub enum ErrorCode {
 	InvalidInteger,
 	IntegerOverflow,
 	InvalidData,
-	InvalidJson,
+	InvalidPayload,
 }
 
 impl ErrorCode {
@@ -26,7 +26,7 @@ impl ErrorCode {
 			ErrorCode::InvalidInteger => "Value is not an integer!".to_string(),
 			ErrorCode::IntegerOverflow => "Integer overflow occurred!".to_string(),
 			ErrorCode::InvalidData => "Invalid data!".to_string(),
-			ErrorCode::InvalidJson => "Invalid JSON!".to_string(),
+			ErrorCode::InvalidPayload => "Invalid payload!".to_string(),
 		}
 	}
 }
@@ -47,7 +47,7 @@ impl Error {
 			ErrorCode::InvalidInteger => 1002,
 			ErrorCode::IntegerOverflow => 1003,
 			ErrorCode::InvalidData => 1004,
-			ErrorCode::InvalidJson => 1005,
+			ErrorCode::InvalidPayload => 1005,
 		};
 		Error::new(code, &error_code.message())
 	}
