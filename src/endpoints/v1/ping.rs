@@ -15,5 +15,5 @@ pub async fn handle_get(
     return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string() }).into_response();
   }
 
-	"PONG".into_response()
+	Json(Error{ code: 0, message: "success".to_string() }).into_response()
 }
