@@ -8,13 +8,13 @@ pub struct Error {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ErrorCode {
-	Success,
-	InvalidToken,
-	InvalidNumber,
-	InvalidInteger,
-	IntegerOverflow,
-	InvalidData,
-	InvalidPayload,
+	Success = 0,
+	InvalidToken = 1000,
+	InvalidNumber = 1001,
+	InvalidInteger = 1002,
+	IntegerOverflow = 1003,
+	InvalidData = 1004,
+	InvalidPayload = 1005,
 }
 
 impl ErrorCode {
@@ -40,15 +40,6 @@ impl Error {
 	}
 
 	pub fn from_code(error_code: ErrorCode) -> Self {
-		let code = match error_code {
-			ErrorCode::Success => 0,
-			ErrorCode::InvalidToken => 1000,
-			ErrorCode::InvalidNumber => 1001,
-			ErrorCode::InvalidInteger => 1002,
-			ErrorCode::IntegerOverflow => 1003,
-			ErrorCode::InvalidData => 1004,
-			ErrorCode::InvalidPayload => 1005,
-		};
-		Error::new(code, &error_code.message())
+		Error::new(error_code.clone() as u64, &error_code.message())
 	}
 }
