@@ -40,16 +40,11 @@ impl Cache {
 	}
 
 	pub fn set(&mut self, key: String, value: serde_json::Value, ttl: u128){
-		let key2: String = key.clone();
-		let value2: serde_json::Value = value.clone();
 		self.stats.writes += 1;
 		let expiration: u128 = current_time() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
 		if self.persistant {
-			let mut cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
-			cache_map.insert(key2, CacheItemSmall { v: value2, e: expiration });
-			let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
-			write_cache_to_file(&self.path, &json_str);
+			self.save().ok();
 		}
 	}
 
@@ -85,41 +80,27 @@ impl Cache {
 
 	pub fn load(&mut self) -> Result<()>{
 		let cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
+		let cur_time: u128 = current_time();
 		for (key, value) in cache_map {
+			if value.e < cur_time { continue; }
 			let cache_item = CacheItem {
 					expiration: value.e,
 					value: value.v,
 			};
 			self.cache.insert(key, cache_item);
 		}
-		/*
-		let file: File = File::open(format!("{}/cache.jsonl", self.path))?;
-		let reader: BufReader<File> = BufReader::new(file);
-		for line in reader.lines() {
-			let kv: KeyValue = serde_json::from_str(line.as_ref().unwrap())?;
-			self.cache.insert(kv.k, CacheItem { expiration: kv.e, value: kv.v });
-		}
-		*/
 		Ok(())
 	}
 
 	pub fn save(&self) -> Result<()>{
 		let mut cache_map: HashMap<String, CacheItemSmall> = HashMap::new();
+		let cur_time: u128 = current_time();
 		for (key, value) in &self.cache {
+			if value.expiration < cur_time { continue; }
 			cache_map.insert(key.clone(), CacheItemSmall { v: value.value.clone(), e: value.expiration });
 		}
 		let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
 		write_cache_to_file(&self.path, &json_str);
-
-		/*
-		let file: File = OpenOptions::new().write(true).truncate(true).create(true).open(format!("{}/cache.jsonl", self.path))?;
-		let mut writer: BufWriter<File> = BufWriter::new(file);
-		for (key, cache_item) in &self.cache {
-			let kv: KeyValue = KeyValue { k: key.clone(), v: cache_item.value.clone(), e: cache_item.expiration };
-			let line: String = serde_json::to_string(&kv)?;
-			writeln!(writer, "{}", line)?;
-		}
-		*/
 		Ok(())
 	}
 
