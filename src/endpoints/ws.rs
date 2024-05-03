@@ -107,6 +107,8 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					}
 				};
 				socket.send(Message::Text(response_to_string(res).await)).await.ok();
+			}else{
+				socket.send(Message::Text(serde_json::to_string(&Error::from_code(ErrorCode::InvalidJson)).unwrap())).await.ok();
 			}
 		}
 
