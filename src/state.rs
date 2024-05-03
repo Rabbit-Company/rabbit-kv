@@ -1,5 +1,5 @@
 use crate::caches::cache::Cache;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 pub struct SharedState {
 	pub token: String,

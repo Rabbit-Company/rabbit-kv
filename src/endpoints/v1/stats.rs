@@ -3,14 +3,15 @@ use axum::http::Response;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::{Arc, MutexGuard};
+use std::sync::Arc;
+use tokio::sync::MutexGuard;
 
 use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
-pub fn handle(state: Arc<SharedState>) -> Response<Body>{
-	let shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+pub async fn handle(state: Arc<SharedState>) -> Response<Body>{
+	let shared_cache: MutexGuard<Cache> = state.cache.lock().await;
 
 	Json(&shared_cache.stats).into_response()
 }
@@ -24,5 +25,5 @@ pub async fn handle_get(
 		return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state)
+	handle(state).await
 }

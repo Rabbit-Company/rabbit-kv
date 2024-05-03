@@ -1,7 +1,8 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::{Arc, MutexGuard};
+use std::sync::Arc;
+use tokio::sync::MutexGuard;
 
 use crate::SharedState;
 use crate::error::{Error, ErrorCode};
@@ -16,7 +17,7 @@ pub async fn handle_get(
 		return Json(Error::from_code(ErrorCode::Success)).into_response();
   }
 
-	let shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+	let shared_cache: MutexGuard<Cache> = state.cache.lock().await;
 
 	let response_body: String = format!(
 		"# HELP cache_writes Total cache writes\n\

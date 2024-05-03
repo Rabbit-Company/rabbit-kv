@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
-use std::fs::{File, OpenOptions};
-use std::io::prelude::*;
-use std::io::Result;
 use std::collections::HashMap;
+use tokio::fs;
+use tokio::io::Result;
 
 use super::stats::Stats;
 use crate::utils::current_time;
@@ -43,9 +42,6 @@ impl Cache {
 		self.stats.writes += 1;
 		let expiration: u128 = current_time() + ttl;
 		self.cache.insert(key, CacheItem { expiration, value });
-		if self.persistant {
-			self.save().ok();
-		}
 	}
 
 	pub fn get(&mut self, key: &str) -> Option<&CacheItem>{
@@ -56,9 +52,6 @@ impl Cache {
 	pub fn delete(&mut self, key: &str){
 		self.stats.deletes += 1;
 		self.cache.swap_remove(key);
-		if self.persistant {
-			self.save().ok();
-		}
 	}
 
 	pub fn list(&mut self, limit: usize, cursor: usize, prefix: &str) -> Vec<&String>{
@@ -78,21 +71,25 @@ impl Cache {
 		}
 	}
 
-	pub fn load(&mut self) -> Result<()>{
-		let cache_map: HashMap<String, CacheItemSmall> = read_cache_from_file(&self.path);
-		let cur_time: u128 = current_time();
-		for (key, value) in cache_map {
-			if value.e < cur_time { continue; }
-			let cache_item = CacheItem {
-					expiration: value.e,
-					value: value.v,
-			};
-			self.cache.insert(key, cache_item);
+	pub async fn load(&mut self) -> Result<()>{
+		match read_cache_from_file(&self.path).await {
+			Ok(cache_map) => {
+				let cur_time: u128 = current_time();
+				for (key, value) in cache_map {
+					if value.e < cur_time { continue; }
+					let cache_item = CacheItem {
+							expiration: value.e,
+							value: value.v,
+					};
+					self.cache.insert(key, cache_item);
+				}
+				Ok(())
+			},
+			Err(err) => Err(err),
 		}
-		Ok(())
 	}
 
-	pub fn save(&self) -> Result<()>{
+	pub async fn save(&self) -> Result<()>{
 		let mut cache_map: HashMap<String, CacheItemSmall> = HashMap::new();
 		let cur_time: u128 = current_time();
 		for (key, value) in &self.cache {
@@ -100,26 +97,17 @@ impl Cache {
 			cache_map.insert(key.clone(), CacheItemSmall { v: value.value.clone(), e: value.expiration });
 		}
 		let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
-		write_cache_to_file(&self.path, &json_str);
+		write_cache_to_file(&self.path, &json_str).await;
 		Ok(())
 	}
 
 }
 
-fn read_cache_from_file(path: &str) -> HashMap<String, CacheItemSmall> {
-	let mut file = File::open(format!("{}/cache.json", path)).expect("Failed to open cache file!");
-	let mut json_str = String::new();
-	file.read_to_string(&mut json_str).expect("Failed to read cache from a file!");
-
-	serde_json::from_str(&json_str).expect("Failed to read cache from a file!")
+async fn read_cache_from_file(path: &str) -> Result<HashMap<String, CacheItemSmall>> {
+	let json_str: String = fs::read_to_string(format!("{}/cache.json", path)).await?;
+  Ok(serde_json::from_str(&json_str)?)
 }
 
-fn write_cache_to_file(path: &str, json_str: &str) {
-	let mut file = OpenOptions::new()
-		.write(true)
-		.truncate(true)
-		.open(format!("{}/cache.json", path))
-		.expect("Failed to open cache file!");
-
-	file.write_all(json_str.as_bytes()).expect("Failed to write cache to file!");
+async fn write_cache_to_file(path: &str, json_str: &str) {
+	fs::write(format!("{}/cache.json", path), json_str).await.ok();
 }

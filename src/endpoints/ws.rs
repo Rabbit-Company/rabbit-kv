@@ -55,10 +55,10 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 			if let Ok(payload) = serde_json::from_str::<Payload>(&t) {
 				let res: Response<Body> = match payload.action {
 					Actions::PING => super::v1::ping::handle(),
-					Actions::STATS => super::v1::stats::handle(state),
+					Actions::STATS => super::v1::stats::handle(state).await,
 					Actions::GET => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::get::handle(state, data.key)
+							super::v1::get::handle(state, data.key).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -69,7 +69,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::SET => {
 						if let Ok(data) = serde_json::from_value::<DataPayload>(payload.data) {
-							super::v1::set::handle(state, data.key, data.value, data.ttl)
+							super::v1::set::handle(state, data.key, data.value, data.ttl).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -80,7 +80,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::DEL => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::del::handle(state, data.key)
+							super::v1::del::handle(state, data.key).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -91,7 +91,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::LIST => {
 						if let Ok(data) = serde_json::from_value::<ListPayload>(payload.data) {
-							super::v1::list::handle(state, data.prefix, data.limit, data.cursor)
+							super::v1::list::handle(state, data.prefix, data.limit, data.cursor).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -102,7 +102,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::EXISTS => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::exists::handle(state, data.key)
+							super::v1::exists::handle(state, data.key).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -113,7 +113,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::INCR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
-							super::v1::incr::handle(state, data.key, data.value, data.ttl)
+							super::v1::incr::handle(state, data.key, data.value, data.ttl).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,
@@ -124,7 +124,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					},
 					Actions::DECR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
-							super::v1::decr::handle(state, data.key, data.value, data.ttl)
+							super::v1::decr::handle(state, data.key, data.value, data.ttl).await
 						}else{
 							Json(WsResponse{
 								id: payload.id,

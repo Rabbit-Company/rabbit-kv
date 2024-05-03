@@ -3,15 +3,16 @@ use axum::http::Response;
 use axum::{extract::State, extract::Path, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::{Arc,MutexGuard};
+use std::sync::Arc;
+use tokio::sync::MutexGuard;
 
 use crate::types::ListPayload;
 use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
-pub fn handle(state: Arc<SharedState>, prefix: String, limit: usize, cursor: usize) -> Response<Body>{
-	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+pub async fn handle(state: Arc<SharedState>, prefix: String, limit: usize, cursor: usize) -> Response<Body>{
+	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().await;
 
 	Json(shared_cache.list(limit, cursor, &prefix)).into_response()
 }
@@ -26,7 +27,7 @@ pub async fn handle_get(
     return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state, prefix, limit, cursor)
+	handle(state, prefix, limit, cursor).await
 }
 
 pub async fn handle_post(
@@ -39,5 +40,5 @@ pub async fn handle_post(
     return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state, payload.prefix, payload.limit, payload.cursor)
+	handle(state, payload.prefix, payload.limit, payload.cursor).await
 }

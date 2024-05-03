@@ -5,7 +5,8 @@ use axum::{
 use std::fs;
 use std::path::Path;
 use clap::Parser;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::{Mutex,MutexGuard};
 use tokio::net::TcpListener;
 
 pub mod utils;
@@ -73,7 +74,13 @@ async fn main(){
 			fs::write(&file, "{}").expect("Failed with creating cache.json file!");
 		}
 
-		state.cache.lock().unwrap().load().expect("Failed to load cache!");
+		let mut guard: MutexGuard<Cache> = state.cache.lock().await;
+		match guard.load().await {
+			Ok(_) => {}
+			Err(err) => {
+				eprintln!("Failed to load cache: {:?}", err);
+			}
+		};
 	}
 
 	let address: String = args.address + ":" + &args.port.to_string();
