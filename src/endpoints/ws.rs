@@ -28,7 +28,7 @@ pub async fn handle_get(
 ) -> impl IntoResponse{
 
   if state.token.ne(&token) {
-		return Json(Error{ code: 1000, message: "Provided token is incorrect!".to_string()}).into_response();
+		return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
 	ws.on_upgrade(move |socket| handle_socket(socket, state))
