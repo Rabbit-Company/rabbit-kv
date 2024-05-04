@@ -10,6 +10,7 @@ pub enum Actions {
 	INCR,
 	DECR,
 	SAVE,
+	CLEAN,
 	PING,
 	STATS
 }

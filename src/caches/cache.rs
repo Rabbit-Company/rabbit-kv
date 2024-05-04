@@ -59,16 +59,9 @@ impl Cache {
 		self.cache.keys().filter(move |k: &&String| k.starts_with(prefix)).enumerate().skip(cursor).take(limit).map(|(_i, k)| k).collect()
 	}
 
-	pub fn delete_expired_items(&mut self){
-		let mut expired_keys: Vec<String> = Vec::new();
-		for (key, cache_item) in self.cache.iter() {
-			if current_time() >= cache_item.expiration {
-				expired_keys.push(key.clone());
-			}
-		}
-		for key in expired_keys {
-			self.cache.swap_remove(&key);
-		}
+	pub fn clean(&mut self){
+		let current_time: u128 = current_time();
+		self.cache.retain(|_, cache_item| current_time < cache_item.expiration)
 	}
 
 	pub fn load(&mut self) -> io::Result<()>{
