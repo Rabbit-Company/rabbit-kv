@@ -2,6 +2,8 @@
 name = "rabbit-kv"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/Rabbit-Company/rabbit-kv"
+description = "Simple key-value store written in Rust with HTTP and WebSockets support"
 
 [dependencies]
 axum = { version = "0.7", features = ["ws", "http2"] }
