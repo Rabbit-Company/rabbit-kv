@@ -9,6 +9,7 @@ pub enum Actions {
 	EXISTS,
 	INCR,
 	DECR,
+	SAVE,
 	PING,
 	STATS
 }
