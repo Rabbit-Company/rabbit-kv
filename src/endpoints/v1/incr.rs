@@ -3,8 +3,7 @@ use axum::http::Response;
 use axum::{extract::State, extract::Path, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::Arc;
-use tokio::sync::MutexGuard;
+use std::sync::{Arc, MutexGuard};
 use serde_json::Value;
 
 use crate::types::NumberDataPayload;
@@ -13,8 +12,8 @@ use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
-pub async fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Response<Body>{
-	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().await;
+pub fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Response<Body>{
+	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 
 	let new_value: i64 = match shared_cache.get(&key) {
 		Some(item) => {
@@ -63,7 +62,7 @@ pub async fn handle_get(
     return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state, key, value, ttl).await
+	handle(state, key, value, ttl)
 }
 
 pub async fn handle_post(
@@ -76,5 +75,5 @@ pub async fn handle_post(
     return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state, payload.key, payload.value, payload.ttl).await
+	handle(state, payload.key, payload.value, payload.ttl)
 }

@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use tokio::fs;
-use tokio::io::Result;
+use std::fs;
+use std::io::Result;
 
 use super::stats::Stats;
 use crate::utils::current_time;
@@ -71,8 +71,8 @@ impl Cache {
 		}
 	}
 
-	pub async fn load(&mut self) -> Result<()>{
-		match read_cache_from_file(&self.path).await {
+	pub fn load(&mut self) -> Result<()>{
+		match read_cache_from_file(&self.path) {
 			Ok(cache_map) => {
 				let cur_time: u128 = current_time();
 				for (key, value) in cache_map {
@@ -89,7 +89,7 @@ impl Cache {
 		}
 	}
 
-	pub async fn save(&self) -> Result<()>{
+	pub fn save(&self) -> Result<()>{
 		let mut cache_map: HashMap<String, CacheItemSmall> = HashMap::new();
 		let cur_time: u128 = current_time();
 		for (key, value) in &self.cache {
@@ -97,17 +97,17 @@ impl Cache {
 			cache_map.insert(key.clone(), CacheItemSmall { v: value.value.clone(), e: value.expiration });
 		}
 		let json_str = serde_json::to_string_pretty(&cache_map).unwrap();
-		write_cache_to_file(&self.path, &json_str).await;
+		write_cache_to_file(&self.path, &json_str);
 		Ok(())
 	}
 
 }
 
-async fn read_cache_from_file(path: &str) -> Result<HashMap<String, CacheItemSmall>> {
-	let json_str: String = fs::read_to_string(format!("{}/cache.json", path)).await?;
+fn read_cache_from_file(path: &str) -> Result<HashMap<String, CacheItemSmall>> {
+	let json_str: String = fs::read_to_string(format!("{}/cache.json", path))?;
   Ok(serde_json::from_str(&json_str)?)
 }
 
-async fn write_cache_to_file(path: &str, json_str: &str) {
-	fs::write(format!("{}/cache.json", path), json_str).await.ok();
+fn write_cache_to_file(path: &str, json_str: &str) {
+	fs::write(format!("{}/cache.json", path), json_str).ok();
 }
