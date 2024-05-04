@@ -55,13 +55,17 @@ struct Args {
 	#[arg(long, default_value_t = String::from("./cache"))]
 	path: String,
 
+	/// Preserve items relative order
+	#[arg(long, default_value_t = false)]
+	preserve_order: bool,
+
 }
 
 #[tokio::main]
 async fn main(){
 	let args: Args = Args::parse();
 
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.path.clone())) });
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.path.clone(), args.preserve_order)) });
 
 	let file = args.path.clone() + "/cache.json";
 	let path = Path::new(&file);

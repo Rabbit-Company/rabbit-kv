@@ -23,16 +23,18 @@ pub struct CacheItem {
 pub struct Cache {
 	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats,
-	pub path: String
+	pub path: String,
+	pub preserve_order: bool
 }
 
 impl Cache {
 
-	pub fn new(path: String) -> Self {
+	pub fn new(path: String, preserve_order: bool) -> Self {
 		Cache {
 			cache: IndexMap::new(),
 			stats: Stats::default(),
-			path
+			path,
+			preserve_order
 		}
 	}
 
@@ -49,7 +51,11 @@ impl Cache {
 
 	pub fn delete(&mut self, key: &str){
 		self.stats.deletes += 1;
-		self.cache.swap_remove(key);
+		if self.preserve_order {
+			self.cache.shift_remove(key);
+		}else{
+			self.cache.swap_remove(key);
+		}
 	}
 
 	pub fn list(&mut self, limit: usize, cursor: usize, prefix: &str) -> Vec<&String>{
