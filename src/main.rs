@@ -73,7 +73,7 @@ async fn main(){
 			fs::write(&file, "{}").expect("Failed with creating cache.json file!");
 		}
 
-		state.cache.lock().unwrap().load().ok();
+		state.cache.lock().unwrap().load().expect("Failed with loading data from cache.json file!");
 	}
 
 	let address: String = args.address + ":" + &args.port.to_string();
