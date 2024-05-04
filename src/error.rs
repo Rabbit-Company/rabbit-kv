@@ -15,6 +15,7 @@ pub enum ErrorCode {
 	IntegerOverflow = 1003,
 	InvalidData = 1004,
 	InvalidPayload = 1005,
+	WriteToFile = 1006,
 }
 
 impl ErrorCode {
@@ -27,6 +28,7 @@ impl ErrorCode {
 			ErrorCode::IntegerOverflow => "Integer overflow occurred!".to_string(),
 			ErrorCode::InvalidData => "Invalid data!".to_string(),
 			ErrorCode::InvalidPayload => "Invalid payload!".to_string(),
+			ErrorCode::WriteToFile => "Failed to save data to file!".to_string(),
 		}
 	}
 }
