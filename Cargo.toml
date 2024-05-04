@@ -6,6 +6,7 @@ readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/Rabbit-Company/rabbit-kv"
 description = "Simple key-value store written in Rust with HTTP and WebSockets support"
+categories = ["database-implementations"]
 
 [dependencies]
 axum = { version = "0.7", features = ["ws", "http2"] }
