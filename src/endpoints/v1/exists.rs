@@ -10,6 +10,15 @@ use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
+pub fn handle_ws(state: Arc<SharedState>, key: String) -> serde_json::Value{
+	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+
+	match shared_cache.get(&key) {
+		Some(_) => serde_json::to_value(true).unwrap(),
+		None => serde_json::to_value(false).unwrap()
+	}
+}
+
 pub fn handle(state: Arc<SharedState>, key: String) -> Response<Body>{
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 

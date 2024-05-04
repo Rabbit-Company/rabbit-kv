@@ -1,4 +1,4 @@
-use axum::{body::{to_bytes, Body}, extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, State}, http::{Response, StatusCode}, response::IntoResponse, Json};
+use axum::{extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, State}, response::IntoResponse, Json};
 use std::sync::Arc;
 use std::ops::ControlFlow;
 use futures::stream::StreamExt;
@@ -53,91 +53,89 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 	match msg {
 		Message::Text(t) => {
 			if let Ok(payload) = serde_json::from_str::<Payload>(&t) {
-				let res: Response<Body> = match payload.action {
-					Actions::PING => super::v1::ping::handle(),
-					Actions::STATS => super::v1::stats::handle(state),
-					Actions::SAVE => super::v1::save::handle(state),
-					Actions::CLEAN => super::v1::clean::handle(state),
+				let res: serde_json::Value = match payload.action {
+					Actions::PING => super::v1::ping::handle_ws(),
+					Actions::STATS => super::v1::stats::handle_ws(state),
+					Actions::SAVE => super::v1::save::handle_ws(state),
+					Actions::CLEAN => super::v1::clean::handle_ws(state),
 					Actions::GET => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::get::handle(state, data.key)
+							super::v1::get::handle_ws(state, data.key)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::SET => {
 						if let Ok(data) = serde_json::from_value::<DataPayload>(payload.data) {
-							super::v1::set::handle(state, data.key, data.value, data.ttl)
+							super::v1::set::handle_ws(state, data.key, data.value, data.ttl)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::DEL => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::del::handle(state, data.key)
+							super::v1::del::handle_ws(state, data.key)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::LIST => {
 						if let Ok(data) = serde_json::from_value::<ListPayload>(payload.data) {
-							super::v1::list::handle(state, data.prefix, data.limit, data.cursor)
+							super::v1::list::handle_ws(state, data.prefix, data.limit, data.cursor)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::EXISTS => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
-							super::v1::exists::handle(state, data.key)
+							super::v1::exists::handle_ws(state, data.key)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::INCR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
-							super::v1::incr::handle(state, data.key, data.value, data.ttl)
+							super::v1::incr::handle_ws(state, data.key, data.value, data.ttl)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					},
 					Actions::DECR => {
 						if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
-							super::v1::decr::handle(state, data.key, data.value, data.ttl)
+							super::v1::decr::handle_ws(state, data.key, data.value, data.ttl)
 						}else{
-							Json(WsResponse{
+							serde_json::to_value(WsResponse{
 								id: payload.id,
 								code: ErrorCode::InvalidData as u64,
 								data: None
-							}).into_response()
+							}).unwrap()
 						}
 					}
 				};
-
-				let json: serde_json::Value = response_to_json(res).await;
 
 				let mut data: WsResponse = WsResponse{
 					id: payload.id,
@@ -145,10 +143,10 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					data: None
 				};
 
-				if let Some(code) = json.get("code").and_then(serde_json::Value::as_u64) {
+				if let Some(code) = res.get("code").and_then(serde_json::Value::as_u64) {
 					data.code = code;
 				} else {
-					data.data = Some(json);
+					data.data = Some(res);
 				}
 
 				socket.send(Message::Text(serde_json::to_string(&data).unwrap())).await.ok();
@@ -166,16 +164,4 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 		Message::Pong(_) => {}
 	}
 	ControlFlow::Continue(())
-}
-
-async fn response_to_json(response: Response<Body>) -> serde_json::Value {
-	if response.status() == StatusCode::OK {
-		let body = response.into_body();
-		let full_body = to_bytes(body, usize::MAX).await.unwrap();
-		let body_str = String::from_utf8(full_body.to_vec()).unwrap();
-
-		serde_json::from_str(&body_str).unwrap_or(serde_json::Value::Null)
-	}else{
-		serde_json::Value::Null
-	}
 }

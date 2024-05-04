@@ -8,6 +8,10 @@ use std::sync::Arc;
 use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 
+pub fn handle_ws() -> serde_json::Value{
+	serde_json::to_value(Error::from_code(ErrorCode::Success)).unwrap()
+}
+
 pub fn handle() -> Response<Body>{
 	Json(Error::from_code(ErrorCode::Success)).into_response()
 }

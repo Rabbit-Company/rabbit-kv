@@ -10,6 +10,13 @@ use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
+pub fn handle_ws(state: Arc<SharedState>, key: String, value: serde_json::Value, ttl: u64) -> serde_json::Value{
+	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+	shared_cache.set(key, value, 1000 * ttl as u128);
+
+	serde_json::to_value(Error::from_code(ErrorCode::Success)).unwrap()
+}
+
 pub fn handle(state: Arc<SharedState>, key: String, value: serde_json::Value, ttl: u64) -> Response<Body>{
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 	shared_cache.set(key, value, 1000 * ttl as u128);
@@ -27,7 +34,7 @@ pub async fn handle_get(
     return Json(Error::from_code(ErrorCode::InvalidToken)).into_response();
   }
 
-	handle(state, key, value, ttl)
+	Json(handle_ws(state, key, value, ttl)).into_response()
 }
 
 pub async fn handle_post(

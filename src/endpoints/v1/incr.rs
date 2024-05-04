@@ -12,6 +12,46 @@ use crate::SharedState;
 use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
 
+pub fn handle_ws(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> serde_json::Value{
+	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
+
+	let new_value: i64 = match shared_cache.get(&key) {
+		Some(item) => {
+			if let Value::Number(n) = &item.value {
+				if let Some(i) = n.as_i64() {
+					match i.checked_add(value) {
+						Some(result) => result,
+						None => {
+							return serde_json::to_value(Error::from_code(ErrorCode::IntegerOverflow)).unwrap();
+						}
+					}
+				} else {
+					return serde_json::to_value(Error::from_code(ErrorCode::InvalidInteger)).unwrap();
+				}
+			} else {
+				return serde_json::to_value(Error::from_code(ErrorCode::InvalidNumber)).unwrap();
+			}
+		},
+		None => 1,
+	};
+
+	let new_ttl: u128 = match shared_cache.get(&key) {
+		Some(item) => {
+			let current_time: u128 = current_time();
+			if item.expiration > current_time {
+				item.expiration - current_time
+			} else {
+				0
+			}
+		},
+		None => 1000 * ttl as u128,
+	};
+
+	shared_cache.set(key.clone(), Value::Number(new_value.into()), new_ttl);
+
+	serde_json::to_value(Error::from_code(ErrorCode::Success)).unwrap()
+}
+
 pub fn handle(state: Arc<SharedState>, key: String, value: i64, ttl: u64) -> Response<Body>{
 	let mut shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 
