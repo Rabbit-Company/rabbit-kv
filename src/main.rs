@@ -51,10 +51,6 @@ struct Args {
 	#[arg(short, long, default_value_t = String::from("default_token"))]
 	token: String,
 
-	/// Persistant cache
-	#[arg(long, default_value_t = false)]
-	persistant: bool,
-
 	/// Persistant cache path
 	#[arg(long, default_value_t = String::from("./cache"))]
 	path: String,
@@ -65,18 +61,15 @@ struct Args {
 async fn main(){
 	let args: Args = Args::parse();
 
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.persistant, args.path.clone())) });
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.path.clone())) });
 
-	if args.persistant {
-		let file = args.path.clone() + "/cache.json";
-		let path = Path::new(&file);
-		if !path.exists() {
-			fs::create_dir_all(&args.path).expect("Failed with creating cache.json file!");
-			fs::write(&file, "{}").expect("Failed with creating cache.json file!");
-		}
-
-		state.cache.lock().unwrap().load().expect("Failed with loading data from cache.json file!");
+	let file = args.path.clone() + "/cache.json";
+	let path = Path::new(&file);
+	if !path.exists() {
+		fs::create_dir_all(&args.path).expect("Failed with creating cache.json file!");
+		fs::write(&file, "{}").expect("Failed with creating cache.json file!");
 	}
+	state.cache.lock().unwrap().load().ok();
 
 	let address: String = args.address + ":" + &args.port.to_string();
 

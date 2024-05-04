@@ -23,17 +23,15 @@ pub struct CacheItem {
 pub struct Cache {
 	pub cache: IndexMap<String, CacheItem>,
 	pub stats: Stats,
-	pub persistant: bool,
 	pub path: String
 }
 
 impl Cache {
 
-	pub fn new(persistant: bool, path: String) -> Self {
+	pub fn new(path: String) -> Self {
 		Cache {
 			cache: IndexMap::new(),
 			stats: Stats::default(),
-			persistant,
 			path
 		}
 	}
