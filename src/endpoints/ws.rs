@@ -56,6 +56,7 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					Actions::STATS => super::v1::stats::handle_ws(state),
 					Actions::SAVE => super::v1::save::handle_ws(state),
 					Actions::CLEAN => super::v1::clean::handle_ws(state),
+					Actions::FLUSH => super::v1::flush::handle_ws(state),
 					Actions::GET => {
 						if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 							super::v1::get::handle_ws(state, data.key)

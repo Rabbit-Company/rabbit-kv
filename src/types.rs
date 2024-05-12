@@ -11,6 +11,7 @@ pub enum Actions {
 	DECR,
 	SAVE,
 	CLEAN,
+	FLUSH,
 	PING,
 	STATS
 }

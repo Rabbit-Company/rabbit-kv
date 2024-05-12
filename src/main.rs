@@ -27,6 +27,7 @@ mod endpoints {
 		pub mod ping;
 		pub mod save;
 		pub mod clean;
+		pub mod flush;
 		pub mod stats;
 		pub mod health;
 	}
@@ -97,6 +98,7 @@ async fn main(){
 	.route("/v1/exists/:key", get(endpoints::v1::exists::handle_get))
 	.route("/v1/save", get(endpoints::v1::save::handle_get))
 	.route("/v1/clean", get(endpoints::v1::clean::handle_get))
+	.route("/v1/flush", get(endpoints::v1::flush::handle_get))
 	.route("/v1/stats", get(endpoints::v1::stats::handle_get))
 	.route("/v1/ping", get(endpoints::v1::ping::handle_get))
 	.with_state(state);

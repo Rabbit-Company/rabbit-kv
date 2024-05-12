@@ -68,6 +68,10 @@ impl Cache {
 		self.cache.retain(|_, cache_item| current_time < cache_item.expiration)
 	}
 
+	pub fn flush(&mut self){
+		self.cache = IndexMap::new()
+	}
+
 	pub fn load(&mut self) -> io::Result<()>{
 		match read_cache_from_file(&self.path) {
 			Ok(cache_map) => {
