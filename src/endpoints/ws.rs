@@ -2,6 +2,7 @@ use axum::{extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, State}, r
 use std::sync::Arc;
 use std::ops::ControlFlow;
 use futures::stream::StreamExt;
+use std::sync::atomic::Ordering;
 use serde::{Serialize, Deserialize};
 
 use crate::{error::ErrorCode, types::{Actions, DataPayload, KeyPayload, ListPayload, NumberDataPayload}, SharedState};
@@ -35,7 +36,7 @@ pub async fn handle_get(
 }
 
 async fn handle_socket(mut socket: WebSocket, state: Arc<SharedState>) {
-	state.ws_connections.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+	state.ws_connections.fetch_add(1, Ordering::AcqRel);
 
 	while let Some(Ok(msg)) = socket.next().await {
 		if process_message(&mut socket, msg, state.clone()).await.is_break() {
@@ -43,7 +44,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<SharedState>) {
 		}
 	}
 
-	state.ws_connections.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+	state.ws_connections.fetch_sub(1, Ordering::AcqRel);
 }
 
 async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<SharedState>) -> ControlFlow<(), ()> {
