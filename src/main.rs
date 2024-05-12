@@ -8,6 +8,9 @@ use clap::Parser;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 
+use crate::tcp::{authenticate, handle_client};
+
+pub mod tcp;
 pub mod utils;
 pub mod caches;
 pub mod state;
@@ -66,7 +69,7 @@ struct Args {
 async fn main(){
 	let args: Args = Args::parse();
 
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, ws_connections: AtomicU64::new(0), cache: Mutex::new(Cache::new(args.path.clone(), args.preserve_order)) });
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token.clone(), ws_connections: AtomicU64::new(0), cache: Mutex::new(Cache::new(args.path.clone(), args.preserve_order)) });
 
 	let file = args.path.clone() + "/cache.json";
 	let path = Path::new(&file);
@@ -74,9 +77,10 @@ async fn main(){
 		fs::create_dir_all(&args.path).expect("Failed with creating cache.json file!");
 		fs::write(&file, "{}").expect("Failed with creating cache.json file!");
 	}
-	state.cache.lock().unwrap().load().ok();
+	state.clone().cache.lock().unwrap().load().ok();
 
-	let address: String = args.address + ":" + &args.port.to_string();
+	let address: String = args.address.clone() + ":" + &args.port.to_string();
+	let tcp_address: String = args.address.clone() + ":" + &(args.port + 1).to_string();
 
 	let app: Router = Router::new()
 	.route("/ws/:token", get(endpoints::ws::handle_get))
@@ -101,10 +105,35 @@ async fn main(){
 	.route("/v1/flush", get(endpoints::v1::flush::handle_get))
 	.route("/v1/stats", get(endpoints::v1::stats::handle_get))
 	.route("/v1/ping", get(endpoints::v1::ping::handle_get))
-	.with_state(state);
+	.with_state(state.clone());
 
-	println!("Server is running on {}", &address);
+	tokio::spawn(async move {
+		let listener: TcpListener = TcpListener::bind(&address).await.expect("Failed to bind HTTP listener");
+		println!("HTTP Server is running on {}", &address);
+		axum::serve(listener, app).await.unwrap();
+	});
 
-	let listener: TcpListener = TcpListener::bind(&address).await.unwrap();
-	axum::serve(listener, app).await.unwrap();
+	let tcp_listener: TcpListener = TcpListener::bind(&tcp_address).await.expect("Failed to bind TCP listener");
+	println!("TCP Server is running on {}", &tcp_address);
+
+	loop {
+		match tcp_listener.accept().await {
+			Ok((mut stream, addr)) => {
+				println!("New TCP connection: {}", addr);
+				let token_clone: String = args.token.clone();
+				let state_clone: Arc<SharedState> = state.clone();
+
+				tokio::spawn(async move {
+					if authenticate(&mut stream, &token_clone).await {
+						handle_client(&mut stream, state_clone).await;
+					} else {
+						println!("Authentication failed for {}", addr);
+					}
+				});
+			}
+			Err(e) => {
+				eprintln!("Error accepting TCP connection: {}", e);
+			}
+		}
+	}
 }
