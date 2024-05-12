@@ -35,18 +35,15 @@ pub async fn handle_get(
 }
 
 async fn handle_socket(mut socket: WebSocket, state: Arc<SharedState>) {
+	state.ws_connections.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
 
-	tokio::spawn(async move {
-		let mut cnt = 0;
-		while let Some(Ok(msg)) = socket.next().await {
-			cnt += 1;
-			if process_message(&mut socket, msg, state.clone()).await.is_break() {
-				break;
-			}
+	while let Some(Ok(msg)) = socket.next().await {
+		if process_message(&mut socket, msg, state.clone()).await.is_break() {
+			break;
 		}
-		cnt
-	});
+	}
 
+	state.ws_connections.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
 }
 
 async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<SharedState>) -> ControlFlow<(), ()> {

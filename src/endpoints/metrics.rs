@@ -2,6 +2,7 @@ use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
 use std::sync::{Arc, MutexGuard};
+use std::sync::atomic::Ordering;
 
 use crate::SharedState;
 use crate::error::{Error, ErrorCode};
@@ -34,12 +35,16 @@ pub async fn handle_get(
 		 # HELP cache_keys Number of keys in a cache\n\
 		 # TYPE cache_keys gauge\n\
 		 cache_keys {}\n\
+		 # HELP ws_connections Number of open WebSocket connections\n\
+		 # TYPE ws_connections gauge\n\
+		 ws_connections {}\n\
 		 # EOF",
 		shared_cache.stats.writes,
 		shared_cache.stats.reads,
 		shared_cache.stats.deletes,
 		shared_cache.stats.lists,
-		shared_cache.cache.len()
+		shared_cache.cache.len(),
+		state.ws_connections.load(Ordering::Acquire)
 	);
 
 	response_body.into_response()

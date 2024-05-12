@@ -2,7 +2,7 @@ use axum::{
 	routing::{get, post},
 	Router,
 };
-use std::fs;
+use std::{fs, sync::atomic::AtomicU64};
 use std::path::Path;
 use clap::Parser;
 use std::sync::{Arc, Mutex};
@@ -65,7 +65,7 @@ struct Args {
 async fn main(){
 	let args: Args = Args::parse();
 
-	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, cache: Mutex::new(Cache::new(args.path.clone(), args.preserve_order)) });
+	let state: Arc<SharedState> = Arc::new(SharedState { token: args.token, ws_connections: AtomicU64::new(0), cache: Mutex::new(Cache::new(args.path.clone(), args.preserve_order)) });
 
 	let file = args.path.clone() + "/cache.json";
 	let path = Path::new(&file);
