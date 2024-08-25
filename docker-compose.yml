@@ -1,0 +1,13 @@
+services:
+  rabbit-kv:
+    container_name: rabbit-kv
+    image: "rabbitcompany/rabbit-kv:latest"
+    restart: always
+    environment:
+      - TOKEN=default_token
+    command: rabbit-kv --token ${TOKEN}
+    ports:
+      - "6380:6380" # HTTP and WS
+      - "6381:6381" # TCP
+    volumes:
+      - ./cache:/cache

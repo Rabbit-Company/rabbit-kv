@@ -5,7 +5,7 @@ edition = "2021"
 readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/Rabbit-Company/rabbit-kv"
-description = "Simple key-value store written in Rust with HTTP and WebSockets support"
+description = "Simple key-value store written in Rust with HTTP, WebSockets and TCP support"
 categories = ["database-implementations"]
 
 [dependencies]
