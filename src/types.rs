@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Actions {
@@ -13,12 +13,12 @@ pub enum Actions {
 	CLEAN,
 	FLUSH,
 	PING,
-	STATS
+	STATS,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyPayload {
-	pub key: String
+	pub key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,5 +39,5 @@ pub struct ListPayload {
 pub struct NumberDataPayload {
 	pub key: String,
 	pub value: i64,
-	pub ttl: u64
+	pub ttl: u64,
 }

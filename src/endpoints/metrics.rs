@@ -1,21 +1,20 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
-use std::sync::{Arc, MutexGuard};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, MutexGuard};
 
-use crate::SharedState;
-use crate::error::{Error, ErrorCode};
 use crate::caches::cache::Cache;
+use crate::error::{Error, ErrorCode};
+use crate::SharedState;
 
 pub async fn handle_get(
 	State(state): State<Arc<SharedState>>,
-	TypedHeader(bearer_token): TypedHeader<Authorization<Bearer>>
-) -> impl IntoResponse{
-
-  if state.token.ne(bearer_token.token()) {
+	TypedHeader(bearer_token): TypedHeader<Authorization<Bearer>>,
+) -> impl IntoResponse {
+	if state.token.ne(bearer_token.token()) {
 		return Json(Error::from_code(ErrorCode::Success)).into_response();
-  }
+	}
 
 	let shared_cache: MutexGuard<Cache> = state.cache.lock().unwrap();
 

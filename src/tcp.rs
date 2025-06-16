@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use tokio::net::TcpStream;
+use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use serde::{Serialize, Deserialize};
+use tokio::net::TcpStream;
 
 use crate::error::ErrorCode;
 use crate::state::SharedState;
@@ -40,78 +40,90 @@ pub async fn handle_client(stream: &mut TcpStream, state: Arc<SharedState>) {
 						Actions::GET => {
 							if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 								super::endpoints::v1::get::handle_ws(state.clone(), data.key)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::SET => {
 							if let Ok(data) = serde_json::from_value::<DataPayload>(payload.data) {
 								super::endpoints::v1::set::handle_ws(state.clone(), data.key, data.value, data.ttl)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::DEL => {
 							if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 								super::endpoints::v1::del::handle_ws(state.clone(), data.key)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::LIST => {
 							if let Ok(data) = serde_json::from_value::<ListPayload>(payload.data) {
-								super::endpoints::v1::list::handle_ws(state.clone(), data.prefix, data.limit, data.cursor)
-							}else{
-								serde_json::to_value(TcpResponse{
+								super::endpoints::v1::list::handle_ws(
+									state.clone(),
+									data.prefix,
+									data.limit,
+									data.cursor,
+								)
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::EXISTS => {
 							if let Ok(data) = serde_json::from_value::<KeyPayload>(payload.data) {
 								super::endpoints::v1::exists::handle_ws(state.clone(), data.key)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::INCR => {
 							if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 								super::endpoints::v1::incr::handle_ws(state.clone(), data.key, data.value, data.ttl)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
-						},
+						}
 						Actions::DECR => {
 							if let Ok(data) = serde_json::from_value::<NumberDataPayload>(payload.data) {
 								super::endpoints::v1::decr::handle_ws(state.clone(), data.key, data.value, data.ttl)
-							}else{
-								serde_json::to_value(TcpResponse{
+							} else {
+								serde_json::to_value(TcpResponse {
 									id: payload.id,
 									code: ErrorCode::InvalidData as u64,
-									data: None
-								}).unwrap()
+									data: None,
+								})
+								.unwrap()
 							}
 						}
 					};
@@ -130,26 +142,45 @@ pub async fn handle_client(stream: &mut TcpStream, state: Arc<SharedState>) {
 }
 
 pub async fn authenticate(stream: &mut TcpStream, token: &str) -> bool {
-	let mut buffer: Vec<u8> = vec![0; token.len()];
-	match stream.read_exact(&mut buffer).await {
-		Ok(_) => {
-			if let Ok(received_token) = std::str::from_utf8(&buffer) {
+	let mut buffer = vec![0u8; 1024];
+
+	match tokio::time::timeout(std::time::Duration::from_secs(5), stream.read(&mut buffer)).await {
+		Ok(Ok(n)) => {
+			if n == 0 {
+				println!("Connection closed during authentication");
+				return false;
+			}
+
+			if let Ok(received_token) = std::str::from_utf8(&buffer[..n]) {
 				if received_token.trim() == token {
-					// Authentication successful
-					if let Err(e) = stream.write_all(b"Authenticated").await {
-						println!("Error writing to socket: {}", e);
+					if let Err(e) = stream.write_all(b"Authenticated\n").await {
+						println!("Error writing authentication success: {}", e);
+						return false;
+					}
+
+					if let Err(e) = stream.flush().await {
+						println!("Error flushing stream: {}", e);
+						return false;
 					}
 					return true;
 				}
 			}
 		}
-		Err(e) => {
-			println!("Error reading from socket: {}", e);
+
+		Ok(Err(e)) => {
+			println!("Error reading from socket during authentication: {}", e);
+		}
+
+		Err(_) => {
+			println!("Authentication timeout");
 		}
 	}
-	// Authentication failed
-	if let Err(e) = stream.write_all(b"Unauthorized").await {
-		println!("Error writing to socket: {}", e);
+
+	if let Err(e) = stream.write_all(b"Unauthorized\n").await {
+		println!("Error writing authentication failure: {}", e);
 	}
+
+	let _ = stream.flush().await;
+
 	false
 }
