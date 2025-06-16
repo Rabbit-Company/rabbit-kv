@@ -148,9 +148,9 @@ async fn process_message(socket: &mut WebSocket, msg: Message, state: Arc<Shared
 					data.data = Some(res);
 				}
 
-				socket.send(Message::Text(serde_json::to_string(&data).unwrap())).await.ok();
+				socket.send(Message::Text(serde_json::to_string(&data).unwrap().into())).await.ok();
 			}else{
-				socket.send(Message::Text(serde_json::to_string(&Error::from_code(ErrorCode::InvalidPayload)).unwrap())).await.ok();
+				socket.send(Message::Text(serde_json::to_string(&Error::from_code(ErrorCode::InvalidPayload)).unwrap().into())).await.ok();
 			}
 		}
 
